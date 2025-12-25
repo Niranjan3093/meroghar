@@ -42,15 +42,40 @@ export const isHost = (req, res, next) => {
 };
 
 // Check if user is verified
-export const isVerified = (req, res, next) => {
-  if (!req.userId) {
-    return res.status(401).json({
+export const isVerified = async (req, res, next) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
+    // Import User model dynamically to avoid circular dependency
+    const { default: User } = await import('../model/user.js');
+    
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    if (!user.verified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Email verification required. Please verify your email to access this resource.'
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Verification check error:', error);
+    res.status(500).json({
       success: false,
-      message: 'Authentication required'
+      message: 'Server error during verification check'
     });
   }
-  
-  // You would need to fetch the user and check verified status
-  // For now, we'll just continue - you can enhance this later
-  next();
 };
