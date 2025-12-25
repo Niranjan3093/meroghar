@@ -14,24 +14,6 @@ Complete authentication system with email verification, password reset, and toke
 ✅ **Account Deletion**  
 ✅ **Logout** with token invalidation  
 
-## Environment Setup
-
-1. Copy `.env.example` to `.env`
-2. Update the following variables:
-   ```env
-   MONGODB_URI=mongodb://localhost:27017/meroghar
-   JWT_SECRET=your-secure-secret-key
-   JWT_REFRESH_SECRET=your-refresh-secret-key
-   EMAIL_USER=your-email@gmail.com
-   EMAIL_PASSWORD=your-app-password
-   FRONTEND_URL=http://localhost:3000
-   ```
-
-### Gmail Setup for Email
-1. Enable 2-Step Verification on your Google Account
-2. Go to Security > 2-Step Verification > App passwords
-3. Generate an App Password for "Mail"
-4. Use this 16-character password in `EMAIL_PASSWORD`
 
 ## API Endpoints
 
@@ -316,25 +298,6 @@ curl -X GET http://localhost:5000/api/auth/profile \
 
 ## Running the Server
 
-```bash
-# Development mode
 npm run dev
 
-# Production mode
-npm start
-```
 
-## Next Steps
-
-After setting up authentication, you can:
-
-1. Add more user profile fields (phone, address, etc.)
-2. Implement property listing features
-3. Add booking/reservation system
-4. Integrate payment processing
-5. Add real-time chat functionality
-6. Implement admin dashboard
-
-## Support
-
-For issues or questions, please create an issue in the repository.
