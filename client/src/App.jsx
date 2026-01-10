@@ -21,6 +21,7 @@ import Properties from './pages/properties/Properties'
 import PropertyDetails from './pages/properties/PropertyDetails'
 import TermsAndConditions from './pages/legal/TermsAndConditions'
 import PrivacyNotice from './pages/legal/PrivacyNotice'
+import NotFound from './pages/NotFound'
 
 // Dashboard Pages
 import HostDashboard from './pages/dashboard/host/HostDashboard'
@@ -194,6 +195,8 @@ function App() {
           <Route path="terms" element={<TermsAndConditions />} />
           <Route path="privacy" element={<PrivacyNotice />} />
         </Route>
+
+        <Route path="*" element={<NotFound />} />
 
         {/* Protected Dashboard Routes */}
         <Route path="/dashboard" element={

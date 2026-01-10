@@ -2,6 +2,19 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+const normalizePhone = (value) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+};
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -17,8 +30,7 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    unique: true,
-    sparse: true
+    set: normalizePhone
   },
   password: {
     type: String,
@@ -121,6 +133,44 @@ const userSchema = new mongoose.Schema({
   lastLogin: Date
 }, {
   timestamps: true
+});
+
+userSchema.index(
+  { phone: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      phone: { $type: 'string' }
+    }
+  }
+);
+
+userSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+  const update = this.getUpdate();
+
+  if (!update) {
+    return next();
+  }
+
+  const directPhone = normalizePhone(update.phone);
+  if (update.phone !== undefined) {
+    if (directPhone === undefined) {
+      delete update.phone;
+    } else {
+      update.phone = directPhone;
+    }
+  }
+
+  if (update.$set && Object.prototype.hasOwnProperty.call(update.$set, 'phone')) {
+    const setPhone = normalizePhone(update.$set.phone);
+    if (setPhone === undefined) {
+      delete update.$set.phone;
+    } else {
+      update.$set.phone = setPhone;
+    }
+  }
+
+  next();
 });
 
 // Encrypt password before saving

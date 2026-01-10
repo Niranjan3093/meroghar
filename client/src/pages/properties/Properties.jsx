@@ -79,8 +79,8 @@ function Properties() {
       Object.keys(params).forEach(key => params[key] === undefined && delete params[key])
 
       const response = await propertiesAPI.getAll(params)
-      setProperties(response.data.data)
-      setPagination(response.data.pagination)
+      setProperties(response.data.data || [])
+      setPagination(response.data.pagination || { page: 1, pages: 1, total: 0 })
 
       const mapResponse = await propertiesAPI.getAll({ ...params, page: 1, limit: 200 })
       const pinnedProperties = (mapResponse.data.data || []).filter(
@@ -158,8 +158,9 @@ function Properties() {
       setLoading(true)
       setIsNearbyMode(false)
       const response = await propertiesAPI.search(searchQuery)
-      setProperties(response.data.data)
-      setPagination({ page: 1, pages: 1, total: response.data.count })
+      const searchResults = response.data.data || []
+      setProperties(searchResults)
+      setPagination({ page: 1, pages: 1, total: response.data.count || searchResults.length })
 
       const pinnedProperties = (response.data.data || []).filter(
         (property) => property.location?.coordinates?.length === 2
@@ -375,7 +376,7 @@ function Properties() {
       {/* Results Count and View Toggle */}
       <div className="mb-6 flex items-center justify-between">
         <p className="text-gray-600">
-          {loading ? 'Loading...' : `${pagination.total} properties found`}
+          {loading ? 'Loading...' : `${pagination?.total ?? 0} properties found`}
         </p>
         
         <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1">
