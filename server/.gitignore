@@ -1,14 +1,4 @@
 # ==================
-# Environment Files
-# ==================
-.env
-.env.local
-.env.*.local
-.env.production
-.env.development
-.env.test
-
-# ==================
 # Dependencies
 # ==================
 node_modules/
@@ -17,37 +7,41 @@ yarn.lock
 pnpm-lock.yaml
 
 # ==================
+# Environment & Secrets
+# ==================
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+.env.*.local
+
+# ==================
 # Build & Output
 # ==================
 dist/
 build/
 out/
-bundle/
-.parcel-cache/
-.next/
-.nuxt/
 
 # ==================
-# Logs & Debug
+# Logs
 # ==================
 logs/
+logs.txt
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-.pnpm-debug.log
 
 # ==================
-# Sensitive Files
+# Sensitive Files & Keys
 # ==================
 *.key
 *.pem
 *.pfx
 *.p12
-*.pub
-*.private
 public.keyx
 private.keyx
 secrets.json
@@ -56,57 +50,48 @@ credentials.json
 .ssh/
 
 # ==================
-# OS & Editor Files
+# User Uploads & Temp
+# ==================
+uploads/
+downloads/
+tmp/
+temp/
+*.tmp
+
+# ==================
+# IDE & Editor
+# ==================
+.vscode/
+.idea/
+.project
+.settings/
+.classpath
+*.suo
+*.swp
+*.swo
+*.sw?
+.sublime-project
+.sublime-workspace
+
+# ==================
+# OS Files
 # ==================
 .DS_Store
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
-.TrashBy*
-.AppleDouble
-.LSOverride
-._*
-
-# IDE & Editor Files
-.vscode/
-.idea/
-*.swp
-*.swo
-*.swn
-*~
-*.sublime-project
-*.sublime-workspace
-.project
-.settings/
-.classpath
-.factorypath
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
 # ==================
-# Testing
+# Testing & Coverage
 # ==================
 coverage/
 .nyc_output/
-.jest-cache/
 jest.config.js
 
 # ==================
-# Temporary Files
+# Cache
 # ==================
-tmp/
-temp/
-*.tmp
-*.cache
 .cache/
-
-# ==================
-# Development
-# ==================
-.env.local.php
-*.sublime-project
-*.sublime-workspace
+.eslintcache
+.jest-cache/

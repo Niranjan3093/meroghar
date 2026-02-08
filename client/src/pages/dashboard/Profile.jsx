@@ -1,0 +1,434 @@
+import { useState, useEffect } from 'react'
+import { useAuthStore } from '../../store/authStore'
+import { FiUser, FiMail, FiPhone, FiLock, FiCamera, FiMapPin, FiCalendar, FiBell, FiShield, FiCreditCard, FiCheckCircle, FiAlertCircle, FiEdit, FiSave, FiX } from 'react-icons/fi'
+
+function Profile() {
+  const { user, updateUser } = useAuthStore()
+  const [activeTab, setActiveTab] = useState('profile')
+  const [editing, setEditing] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [profileData, setProfileData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: user?.address || '',
+    bio: user?.bio || '',
+    avatar: user?.avatar || 'https://via.placeholder.com/150'
+  })
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
+  const [notifications, setNotifications] = useState({
+    emailNotifications: true,
+    smsNotifications: true,
+    paymentReminders: true,
+    maintenanceUpdates: true,
+    leaseReminders: true,
+    marketingEmails: false
+  })
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    // API call would go here
+    setTimeout(() => {
+      updateUser(profileData)
+      setEditing(false)
+      setLoading(false)
+    }, 1000)
+  }
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault()
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      alert('Passwords do not match')
+      return
+    }
+    setLoading(true)
+    // API call would go here
+    setTimeout(() => {
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      setLoading(false)
+      alert('Password updated successfully')
+    }, 1000)
+  }
+
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: FiUser },
+    { id: 'security', label: 'Security', icon: FiShield },
+    { id: 'notifications', label: 'Notifications', icon: FiBell },
+    { id: 'payment', label: 'Payment Methods', icon: FiCreditCard }
+  ]
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Profile Settings</h1>
+        <p className="text-gray-500 mt-1">Manage your account settings and preferences</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Sidebar / Tab Navigation */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-xl border border-gray-100 p-4">
+            {/* Profile Card */}
+            <div className="text-center pb-4 mb-4 border-b border-gray-100">
+              <div className="relative inline-block">
+                <img 
+                  src={profileData.avatar} 
+                  alt={profileData.name}
+                  className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white shadow-lg"
+                />
+                <button className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition shadow-lg">
+                  <FiCamera className="text-sm" />
+                </button>
+              </div>
+              <h3 className="mt-4 font-semibold text-gray-900">{profileData.name}</h3>
+              <p className="text-sm text-gray-500 capitalize">{user?.role}</p>
+              <div className="flex items-center justify-center mt-2">
+                {user?.isVerified ? (
+                  <span className="inline-flex items-center text-xs text-green-600">
+                    <FiCheckCircle className="mr-1" /> Verified Account
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center text-xs text-orange-600">
+                    <FiAlertCircle className="mr-1" /> Unverified
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <nav className="space-y-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition ${
+                    activeTab === tab.id
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <tab.icon className="mr-3 text-lg" />
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="lg:col-span-3">
+          {/* Profile Tab */}
+          {activeTab === 'profile' && (
+            <div className="bg-white rounded-xl border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-900">Personal Information</h2>
+                {!editing ? (
+                  <button 
+                    onClick={() => setEditing(true)}
+                    className="flex items-center text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  >
+                    <FiEdit className="mr-1" /> Edit
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => setEditing(false)}
+                    className="flex items-center text-gray-600 hover:text-gray-700 text-sm font-medium"
+                  >
+                    <FiX className="mr-1" /> Cancel
+                  </button>
+                )}
+              </div>
+
+              <form onSubmit={handleProfileUpdate} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={profileData.name}
+                        onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                        className="input-field"
+                      />
+                    ) : (
+                      <p className="text-gray-900 py-2">{profileData.name || '-'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    {editing ? (
+                      <input
+                        type="email"
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                        className="input-field"
+                      />
+                    ) : (
+                      <div className="flex items-center">
+                        <p className="text-gray-900 py-2">{profileData.email || '-'}</p>
+                        {user?.isEmailVerified && (
+                          <FiCheckCircle className="ml-2 text-green-500" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                    {editing ? (
+                      <input
+                        type="tel"
+                        value={profileData.phone}
+                        onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                        className="input-field"
+                        placeholder="+977 9800000000"
+                      />
+                    ) : (
+                      <div className="flex items-center">
+                        <p className="text-gray-900 py-2">{profileData.phone || '-'}</p>
+                        {user?.isPhoneVerified && (
+                          <FiCheckCircle className="ml-2 text-green-500" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                    {editing ? (
+                      <input
+                        type="text"
+                        value={profileData.address}
+                        onChange={(e) => setProfileData({...profileData, address: e.target.value})}
+                        className="input-field"
+                        placeholder="Your address"
+                      />
+                    ) : (
+                      <p className="text-gray-900 py-2">{profileData.address || '-'}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
+                  {editing ? (
+                    <textarea
+                      value={profileData.bio}
+                      onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
+                      className="input-field"
+                      rows={3}
+                      placeholder="Tell us about yourself..."
+                    />
+                  ) : (
+                    <p className="text-gray-900 py-2">{profileData.bio || 'No bio added'}</p>
+                  )}
+                </div>
+
+                {editing && (
+                  <div className="flex justify-end pt-4 border-t border-gray-100">
+                    <button 
+                      type="submit" 
+                      disabled={loading}
+                      className="btn-primary flex items-center"
+                    >
+                      {loading ? (
+                        <span className="animate-spin mr-2">⏳</span>
+                      ) : (
+                        <FiSave className="mr-2" />
+                      )}
+                      Save Changes
+                    </button>
+                  </div>
+                )}
+              </form>
+
+              {/* Account Stats */}
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <h3 className="text-sm font-medium text-gray-700 mb-4">Account Statistics</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <p className="text-2xl font-bold text-primary-600">
+                      {user?.role === 'host' ? '5' : '1'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {user?.role === 'host' ? 'Properties' : 'Leases'}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <p className="text-2xl font-bold text-green-600">12</p>
+                    <p className="text-xs text-gray-500 mt-1">Payments</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <p className="text-2xl font-bold text-blue-600">3</p>
+                    <p className="text-xs text-gray-500 mt-1">Messages</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <p className="text-2xl font-bold text-orange-600">2</p>
+                    <p className="text-xs text-gray-500 mt-1">Reviews</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Security Tab */}
+          {activeTab === 'security' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl border border-gray-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">Change Password</h2>
+                <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                    <input
+                      type="password"
+                      value={passwordData.currentPassword}
+                      onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
+                      className="input-field"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                    <input
+                      type="password"
+                      value={passwordData.newPassword}
+                      onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                      className="input-field"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                    <input
+                      type="password"
+                      value={passwordData.confirmPassword}
+                      onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                      className="input-field"
+                      required
+                    />
+                  </div>
+                  <button type="submit" disabled={loading} className="btn-primary">
+                    {loading ? 'Updating...' : 'Update Password'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">Two-Factor Authentication</h2>
+                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900">SMS Authentication</p>
+                    <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
+                  </div>
+                  <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                    Enable
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">Active Sessions</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-100">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                        💻
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Chrome on Windows</p>
+                        <p className="text-sm text-gray-500">Kathmandu, Nepal • Current session</p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-green-600 font-medium">Active now</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <div className="bg-white rounded-xl border border-gray-100 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Notification Preferences</h2>
+              <div className="space-y-6">
+                {[
+                  { key: 'emailNotifications', label: 'Email Notifications', desc: 'Receive notifications via email' },
+                  { key: 'smsNotifications', label: 'SMS Notifications', desc: 'Receive notifications via SMS' },
+                  { key: 'paymentReminders', label: 'Payment Reminders', desc: 'Get reminded about upcoming payments' },
+                  { key: 'maintenanceUpdates', label: 'Maintenance Updates', desc: 'Updates on maintenance requests' },
+                  { key: 'leaseReminders', label: 'Lease Reminders', desc: 'Reminders about lease expiry' },
+                  { key: 'marketingEmails', label: 'Marketing Emails', desc: 'Receive promotional content' }
+                ].map((item) => (
+                  <div key={item.key} className="flex items-center justify-between py-4 border-b border-gray-100 last:border-0">
+                    <div>
+                      <p className="font-medium text-gray-900">{item.label}</p>
+                      <p className="text-sm text-gray-500">{item.desc}</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={notifications[item.key]}
+                        onChange={(e) => setNotifications({...notifications, [item.key]: e.target.checked})}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Payment Methods Tab */}
+          {activeTab === 'payment' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl border border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Payment Methods</h2>
+                  <button className="btn-primary text-sm">Add New</button>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="w-12 h-8 bg-purple-100 rounded flex items-center justify-center mr-4">
+                        <span className="text-purple-600 font-bold text-xs">Khalti</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Khalti Wallet</p>
+                        <p className="text-sm text-gray-500">9841****567</p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">Default</span>
+                  </div>
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="w-12 h-8 bg-green-100 rounded flex items-center justify-center mr-4">
+                        <span className="text-green-600 font-bold text-xs">eSewa</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">eSewa Wallet</p>
+                        <p className="text-sm text-gray-500">9851****890</p>
+                      </div>
+                    </div>
+                    <button className="text-sm text-gray-500 hover:text-gray-700">Set Default</button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-6">Billing History</h2>
+                <p className="text-gray-500 text-sm">View your payment and billing history in the Payments section.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default Profile
