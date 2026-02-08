@@ -2,11 +2,8 @@
 
 A complete full-stack rental management platform built with the MERN stack (MongoDB, Express.js, React, Node.js).
 
-## 🎉 Project Status: COMPLETED ✅
 
-The complete MERN stack application has been created with all core features implemented!
-
-## 🚀 Quick Start
+##  Quick Start
 
 **For a quick 5-minute setup guide, see [QUICKSTART.md](./QUICKSTART.md)**
 
