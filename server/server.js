@@ -100,8 +100,42 @@ startCronJobs();
 
 const PORT = process.env.PORT || 5000;
 
-httpServer.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+let tryPort = PORT;
+const startServer = () => {
+  httpServer.listen(tryPort, () => {
+    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${tryPort}`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${tryPort} is already in use. Trying port ${tryPort + 1}...`);
+      tryPort++;
+      if (tryPort > PORT + 10) {
+        console.error('Could not find an available port after trying 10 ports');
+        process.exit(1);
+      }
+      startServer();
+    } else {
+      throw err;
+    }
+  });
+};
+
+startServer();
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  httpServer.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  httpServer.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });
 
 export default app;

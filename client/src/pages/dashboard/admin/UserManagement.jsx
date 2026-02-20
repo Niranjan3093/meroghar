@@ -112,6 +112,30 @@ function UserManagement() {
     }
   }
 
+  const handleVerifyUser = async (userId, userName, isCurrentlyVerified) => {
+    const action = isCurrentlyVerified ? 'unverify' : 'verify'
+    const confirmMsg = isCurrentlyVerified 
+      ? `Are you sure you want to unverify ${userName}?`
+      : `Are you sure you want to verify ${userName}?`
+    
+    if (window.confirm(confirmMsg)) {
+      try {
+        setProcessingId(userId)
+        await adminAPI.verifyUser(userId)
+        toast.success(`User ${action}d successfully`)
+        fetchUsers()
+        if (showDetailsModal && userDetails?.user?._id === userId) {
+          fetchUserDetails(userId)
+        }
+      } catch (error) {
+        console.error(`Failed to ${action} user:`, error)
+        toast.error(error.response?.data?.message || `Failed to ${action} user`)
+      } finally {
+        setProcessingId(null)
+      }
+    }
+  }
+
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'admin':
@@ -346,6 +370,11 @@ function UserManagement() {
                         Banned
                       </span>
                     )}
+                    {!userDetails.user.isVerified && (
+                      <span className="px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                        Unverified
+                      </span>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                     <div className="flex items-center">
@@ -498,29 +527,63 @@ function UserManagement() {
 
               {/* Actions */}
               {userDetails.user.role !== 'admin' && (
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  {userDetails.user.isBanned ? (
+                <div className="flex flex-col gap-4 pt-6 border-t border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Verification Action */}
                     <button
-                      onClick={() => handleUnbanUser(userDetails.user._id, userDetails.user.name)}
-                      disabled={processingId}
-                      className="flex-1 btn bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
+                      onClick={() => handleVerifyUser(userDetails.user._id, userDetails.user.name, userDetails.user.isVerified)}
+                      disabled={processingId === userDetails.user._id}
+                      className={`px-4 py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 transform ${
+                        processingId === userDetails.user._id 
+                          ? 'opacity-75 cursor-not-allowed' 
+                          : 'hover:shadow-lg hover:scale-[1.02]'
+                      } ${
+                        userDetails.user.isVerified 
+                          ? 'bg-orange-50 text-orange-700 border-2 border-orange-200 hover:border-orange-300 hover:bg-orange-100' 
+                          : 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md hover:shadow-xl'
+                      }`}
                     >
-                      <FiUnlock />
-                      {processingId === userDetails.user._id ? 'Unbanning...' : 'Unban User'}
+                      <FiShield className="text-lg" />
+                      <span>
+                        {processingId === userDetails.user._id 
+                          ? (userDetails.user.isVerified ? 'Unverifying...' : 'Verifying...')
+                          : (userDetails.user.isVerified ? 'Unverify User' : 'Verify User')
+                        }
+                      </span>
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setShowDetailsModal(false)
-                        openBanModal(userDetails.user)
-                      }}
-                      disabled={processingId}
-                      className="flex-1 btn bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
-                    >
-                      <FiLock />
-                      Ban User
-                    </button>
-                  )}
+
+                    {/* Ban/Unban Action */}
+                    {userDetails.user.isBanned ? (
+                      <button
+                        onClick={() => handleUnbanUser(userDetails.user._id, userDetails.user.name)}
+                        disabled={processingId === userDetails.user._id}
+                        className={`px-4 py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 transform bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md ${
+                          processingId === userDetails.user._id 
+                            ? 'opacity-75 cursor-not-allowed' 
+                            : 'hover:shadow-lg hover:scale-[1.02]'
+                        }`}
+                      >
+                        <FiUnlock className="text-lg" />
+                        <span>{processingId === userDetails.user._id ? 'Unbanning...' : 'Unban User'}</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setShowDetailsModal(false)
+                          openBanModal(userDetails.user)
+                        }}
+                        disabled={processingId === userDetails.user._id}
+                        className={`px-4 py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all duration-200 transform bg-red-50 text-red-700 border-2 border-red-200 hover:border-red-300 hover:bg-red-100 ${
+                          processingId === userDetails.user._id 
+                            ? 'opacity-75 cursor-not-allowed' 
+                            : 'hover:shadow-md hover:scale-[1.02]'
+                        }`}
+                      >
+                        <FiLock className="text-lg" />
+                        <span>Ban User</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

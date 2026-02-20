@@ -492,35 +492,35 @@ function Messages() {
   })
 
   return (
-    <div className="h-[calc(100vh-64px)] flex bg-gray-100">
+    <div className="h-[calc(100vh-80px)] flex bg-gray-100 min-h-0">
       {/* Conversations List */}
-      <div className={`w-full md:w-96 bg-white border-r border-gray-200 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
+      <div className={`w-full md:w-96 bg-white border-r border-gray-200 flex flex-col overflow-hidden ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold text-gray-900">Messages</h1>
+        <div className="p-3 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-lg font-bold text-gray-900">Messages</h1>
             <button
               onClick={() => setShowNewChatModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium"
+              className="flex items-center gap-2 px-2 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-xs font-medium"
             >
-              <FiEdit className="w-4 h-4" />
+              <FiEdit className="w-3 h-3" />
               New Chat
             </button>
           </div>
           <div className="relative">
-            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
         </div>
 
         {/* Conversations */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto scrollbar-hide min-h-0">
           {loading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
@@ -544,36 +544,36 @@ function Messages() {
                 <div
                   key={conv._id}
                   onClick={() => handleSelectConversation(conv)}
-                  className={`p-4 border-b border-gray-100 cursor-pointer transition hover:bg-gray-50 ${
+                  className={`p-3 border-b border-gray-100 cursor-pointer transition hover:bg-gray-50 flex-shrink-0 ${
                     isSelected ? 'bg-primary-50 border-l-4 border-l-primary-600' : ''
                   }`}
                 >
-                  <div className="flex items-start space-x-3">
+                  <div className="flex items-start space-x-2">
                     <div className="relative flex-shrink-0">
-                      <UserAvatar name={otherUser?.name} avatar={otherUser?.avatar} size="lg" />
+                      <UserAvatar name={otherUser?.name} avatar={otherUser?.avatar} size="md" />
                       {isOnline && (
-                        <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-gray-900 truncate">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-sm font-semibold text-gray-900 truncate">
                           {otherUser?.name || 'Unknown User'}
                         </h3>
                         {conv.lastMessage && (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 flex-shrink-0">
                             {formatTime(conv.lastMessage.createdAt)}
                           </span>
                         )}
                       </div>
                       {conv.property && (
-                        <p className="text-sm text-primary-600 truncate flex items-center gap-1">
+                        <p className="text-xs text-primary-600 truncate flex items-center gap-1 mt-0.5">
                           <FiHome className="w-3 h-3" />
                           {conv.property.title}
                         </p>
                       )}
-                      <div className="flex items-center justify-between mt-1">
-                        <p className="text-sm text-gray-600 truncate">
+                      <div className="flex items-center justify-between gap-1 mt-1">
+                        <p className="text-xs text-gray-600 truncate">
                           {typingUsers[conv._id] ? (
                             <span className="text-primary-600 italic">typing...</span>
                           ) : (
@@ -581,7 +581,7 @@ function Messages() {
                           )}
                         </p>
                         {unreadCount > 0 && (
-                          <span className="bg-primary-600 text-white text-xs font-medium px-2 py-0.5 rounded-full ml-2">
+                          <span className="bg-primary-600 text-white text-xs font-medium px-1.5 py-0.5 rounded-full ml-1 flex-shrink-0">
                             {unreadCount}
                           </span>
                         )}
@@ -600,23 +600,23 @@ function Messages() {
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
+            <div className="p-3 border-b border-gray-200 bg-white flex-shrink-0">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
                   <button 
                     onClick={() => setSelectedConversation(null)}
-                    className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
+                    className="md:hidden p-1.5 hover:bg-gray-100 rounded-lg text-sm"
                   >
                     <FiArrowLeft />
                   </button>
                   <div className="relative">
-                    <UserAvatar name={getOtherParticipant(selectedConversation)?.name} avatar={getOtherParticipant(selectedConversation)?.avatar} size="md" />
+                    <UserAvatar name={getOtherParticipant(selectedConversation)?.name} avatar={getOtherParticipant(selectedConversation)?.avatar} size="sm" />
                     {isUserOnline(getOtherParticipant(selectedConversation)?._id) && (
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
+                      <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border-2 border-white rounded-full"></span>
                     )}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">
+                    <h3 className="font-semibold text-sm text-gray-900">
                       {getOtherParticipant(selectedConversation)?.name}
                     </h3>
                     <p className="text-xs text-gray-500">

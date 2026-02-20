@@ -66,10 +66,10 @@ function Sidebar({ isOpen, onClose, onLogoutClick }) {
       )}
       
       {/* Sidebar */}
-      <aside className={`fixed md:sticky top-0 left-0 w-64 flex-shrink-0 bg-white h-screen shadow-lg border-r-4 border-gradient-to-b from-primary-600 to-accent-500 overflow-y-auto flex flex-col transition-transform duration-300 z-30 md:z-auto ${
+      <aside className={`fixed md:sticky top-0 left-0 w-64 flex-shrink-0 bg-white h-screen shadow-lg border-r-4 border-gradient-to-b from-primary-600 to-accent-500 flex flex-col transition-transform duration-300 z-30 md:z-auto ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
         {/* Close Button on Mobile */}
         <div className="flex justify-end md:hidden p-4">
           <button

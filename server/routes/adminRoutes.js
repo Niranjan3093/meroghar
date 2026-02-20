@@ -10,6 +10,7 @@ import {
   getUserDetails,
   banUser,
   unbanUser,
+  verifyUser,
   getAllProperties,
   getPropertyDetails,
   getAllLeases,
@@ -34,6 +35,7 @@ router.get('/users', getAllUsers);
 router.get('/users/:id', getUserDetails);
 router.put('/users/:id/ban', banUser);
 router.put('/users/:id/unban', unbanUser);
+router.put('/users/:id/verify', verifyUser);
 
 // Lease management
 router.get('/leases', getAllLeases);

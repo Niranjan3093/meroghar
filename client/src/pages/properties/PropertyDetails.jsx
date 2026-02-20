@@ -465,16 +465,26 @@ function PropertyDetails() {
           {property.host && (
             <div className="bg-white rounded-xl border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Property Host</h3>
-              <div className="flex items-center mb-4">
-                <UserAvatar name={property.host.name} avatar={property.host.avatar} size="lg" />
-                <div className="ml-3">
-                  <p className="font-medium text-gray-900">{property.host.name}</p>
-                  {property.host.rating > 0 && (
-                    <p className="text-sm text-gray-600 flex items-center">
-                      <FiStar className="text-yellow-500 fill-current mr-1" />
-                      {property.host.rating} ({property.host.numReviews} reviews)
-                    </p>
-                  )}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center">
+                  <UserAvatar name={property.host.name} avatar={property.host.avatar} size="lg" />
+                  <div className="ml-3">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-gray-900">{property.host.name}</p>
+                      {property.host.isVerified && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                          <FiCheck className="w-3 h-3" />
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                    {property.host.rating > 0 && (
+                      <p className="text-sm text-gray-600 flex items-center mt-1">
+                        <FiStar className="text-yellow-500 fill-current mr-1" />
+                        {property.host.rating} ({property.host.numReviews} reviews)
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
               

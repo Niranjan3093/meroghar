@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { adminAPI } from '../../../utils/api'
-import { FiHome, FiUser, FiMapPin, FiFilter, FiEye, FiCheck, FiX, FiCalendar, FiDollarSign, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { FiHome, FiUser, FiMapPin, FiFilter, FiEye, FiCheck, FiX, FiCalendar, FiDollarSign, FiChevronLeft, FiChevronRight, FiStar } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 import PropertyStatusBadge from '../../../components/PropertyStatusBadge'
 import UserAvatar from '../../../components/UserAvatar'
@@ -271,12 +271,20 @@ function AdminProperties() {
 
                     <div className="flex items-center text-gray-700">
                       <FiUser className="mr-2 text-gray-400 flex-shrink-0" />
-                      <span>
-                        Host: {property.host?.name || 'Unknown'}
-                        {property.host?.rating > 0 && (
-                          <span className="ml-2 flex items-center gap-1"><FiStar className="w-4 h-4 text-yellow-500 fill-yellow-500" /> {property.host.rating.toFixed(1)}</span>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          Host: {property.host?.name || 'Unknown'}
+                          {property.host?.rating > 0 && (
+                            <span className="ml-2 flex items-center gap-1"><FiStar className="w-4 h-4 text-yellow-500 fill-yellow-500" /> {property.host.rating.toFixed(1)}</span>
+                          )}
+                        </span>
+                        {property.host?.isVerified && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium whitespace-nowrap">
+                            <FiCheck className="w-3 h-3" />
+                            Verified
+                          </span>
                         )}
-                      </span>
+                      </div>
                     </div>
                   </div>
 
@@ -538,7 +546,15 @@ function AdminProperties() {
                       size="lg"
                     />
                     <div className="ml-3">
-                      <p className="font-medium">{propertyDetails.property.host?.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{propertyDetails.property.host?.name}</p>
+                        {propertyDetails.property.host?.isVerified && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                            <FiCheck className="w-3 h-3" />
+                            Verified
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-600">{propertyDetails.property.host?.email}</p>
                     </div>
                   </div>

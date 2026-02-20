@@ -157,6 +157,7 @@ export const adminAPI = {
   rejectProperty: (id, reason) => api.put(`/admin/properties/${id}/reject`, { reason }),
   getAllUsers: (params) => api.get('/admin/users', { params }),
   getUserDetails: (id) => api.get(`/admin/users/${id}`),
+  verifyUser: (id) => api.put(`/admin/users/${id}/verify`),
   banUser: (id, reason) => api.put(`/admin/users/${id}/ban`, { reason }),
   unbanUser: (id) => api.put(`/admin/users/${id}/unban`),
   getAllLeases: (params) => api.get('/admin/leases', { params })

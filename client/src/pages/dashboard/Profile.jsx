@@ -11,6 +11,21 @@ function Profile() {
   const [loading, setLoading] = useState(false)
   const [avatarUploading, setAvatarUploading] = useState(false)
   const fileInputRef = useRef(null)
+
+  // Fetch latest user data on component mount
+  useEffect(() => {
+    const fetchLatestUserData = async () => {
+      try {
+        const response = await authAPI.getMe()
+        if (response.data.data) {
+          updateUser(response.data.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch latest user data:', error)
+      }
+    }
+    fetchLatestUserData()
+  }, [])
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',

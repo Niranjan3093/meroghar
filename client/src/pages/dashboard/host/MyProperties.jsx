@@ -80,12 +80,12 @@ setLoading(true)
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Properties</h1>
-          <p className="text-gray-500 mt-1">Manage your property listings</p>
+          <p className="text-gray-500 text-sm mt-0.5">Manage your property listings</p>
         </div>
         <Link to="/dashboard/host/properties/add" className="btn-primary flex items-center w-fit">
           <FiPlus className="mr-2" />
@@ -94,27 +94,27 @@ setLoading(true)
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">Total Properties</p>
-          <p className="text-2xl font-bold text-gray-900">{properties.length}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="bg-white rounded-lg border border-gray-100 p-3">
+          <p className="text-xs text-gray-500">Total Properties</p>
+          <p className="text-xl font-bold text-gray-900 mt-1">{properties.length}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">Active Listings</p>
-          <p className="text-2xl font-bold text-green-600">{properties.filter(p => p.status === 'active' && p.verificationStatus === 'verified').length}</p>
+        <div className="bg-white rounded-lg border border-gray-100 p-3">
+          <p className="text-xs text-gray-500">Active Listings</p>
+          <p className="text-xl font-bold text-green-600 mt-1">{properties.filter(p => p.status === 'active' && p.verificationStatus === 'verified').length}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">Pending Approval</p>
-          <p className="text-2xl font-bold text-orange-600">{properties.filter(p => p.verificationStatus === 'pending').length}</p>
+        <div className="bg-white rounded-lg border border-gray-100 p-3">
+          <p className="text-xs text-gray-500">Pending Approval</p>
+          <p className="text-xl font-bold text-orange-600 mt-1">{properties.filter(p => p.verificationStatus === 'pending').length}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">Total Views</p>
-          <p className="text-2xl font-bold text-blue-600">{properties.reduce((sum, p) => sum + (p.views || 0), 0)}</p>
+        <div className="bg-white rounded-lg border border-gray-100 p-3">
+          <p className="text-xs text-gray-500">Total Views</p>
+          <p className="text-xl font-bold text-blue-600 mt-1">{properties.reduce((sum, p) => sum + (p.views || 0), 0)}</p>
         </div>
       </div>
 
       {/* Filters and View Toggle */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
           {['all', 'active', 'pending', 'rejected'].map((f) => (
             <button
@@ -163,11 +163,11 @@ setLoading(true)
           </Link>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${filteredProperties.length > 6 ? 'overflow-y-auto max-h-[calc(100vh-400px)]' : ''}`}>
           {filteredProperties.map((property) => (
-            <div key={property._id} className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition group">
+            <div key={property._id} className="bg-white rounded-lg border border-gray-100 overflow-hidden hover:shadow-md transition group">
               {/* Image */}
-              <div className="relative h-48 overflow-hidden">
+              <div className="relative h-32 overflow-hidden">
                 {property.images && property.images.length > 0 ? (
                   <img 
                     src={property.images[0].url} 
@@ -257,11 +257,11 @@ setLoading(true)
           ))}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className={`space-y-3 ${filteredProperties.length > 5 ? 'overflow-y-auto max-h-[calc(100vh-380px)]' : ''}`}>
           {filteredProperties.map((property) => (
-            <div key={property._id} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="w-full md:w-48 h-32 rounded-lg overflow-hidden flex-shrink-0">
+            <div key={property._id} className="bg-white rounded-lg border border-gray-100 p-3 hover:shadow-md transition">
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="w-full md:w-40 h-24 rounded-lg overflow-hidden flex-shrink-0">
                   {property.images && property.images.length > 0 ? (
                     <img src={property.images[0].url} alt={property.title} className="w-full h-full object-cover" />
                   ) : (
@@ -271,37 +271,37 @@ setLoading(true)
                   )}
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="flex items-center gap-3">
-                        <h3 className="font-semibold text-gray-900">{property.title}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-sm text-gray-900">{property.title}</h3>
                         <PropertyStatusBadge status={property.status} verificationStatus={property.verificationStatus} />
                       </div>
-                      <p className="text-sm text-gray-500 flex items-center mt-1">
-                        <FiMapPin className="mr-1" /> {property.address?.street}, {property.address?.city}
+                      <p className="text-xs text-gray-500 flex items-center mt-1">
+                        <FiMapPin className="mr-1" size={12} /> {property.address?.street}, {property.address?.city}
                       </p>
                     </div>
-                    <p className="text-xl font-bold text-gray-900">
+                    <p className="text-lg font-bold text-gray-900 flex-shrink-0">
                       NPR {(property.rent || 0).toLocaleString()}
-                      <span className="text-sm font-normal text-gray-500">/mo</span>
+                      <span className="text-xs font-normal text-gray-500">/mo</span>
                     </p>
                   </div>
-                  <div className="flex items-center gap-6 mt-4 text-sm text-gray-600">
-                    <span className="flex items-center"><FiHome className="mr-1" /> {property.propertyType}</span>
-                    <span className="flex items-center"><FiStar className="mr-1 text-yellow-500" /> {property.rating > 0 ? `${property.rating} (${property.numReviews})` : 'New'}</span>
-                    <span className="flex items-center"><FiEye className="mr-1" /> {property.views || 0} views</span>
+                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
+                    <span className="flex items-center"><FiHome className="mr-1" size={12} /> {property.propertyType}</span>
+                    <span className="flex items-center"><FiStar className="mr-1 text-yellow-500" size={12} /> {property.rating > 0 ? `${property.rating} (${property.numReviews})` : 'New'}</span>
+                    <span className="flex items-center"><FiEye className="mr-1" size={12} /> {property.views || 0} views</span>
                   </div>
-                  <div className="flex items-center gap-2 mt-4">
-                    <Link to={`/properties/${property._id}`} className="px-3 py-1.5 text-sm text-gray-600 hover:text-primary-600 border border-gray-200 rounded-lg hover:border-primary-200 transition">View</Link>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Link to={`/properties/${property._id}`} className="px-2 py-1 text-xs text-gray-600 hover:text-primary-600 border border-gray-200 rounded hover:border-primary-200 transition">View</Link>
                     {canEdit(property) && (
                       <button 
                         onClick={() => handleEdit(property)}
-                        className="px-3 py-1.5 text-sm text-gray-600 hover:text-primary-600 border border-gray-200 rounded-lg hover:border-primary-200 transition"
+                        className="px-2 py-1 text-xs text-gray-600 hover:text-primary-600 border border-gray-200 rounded hover:border-primary-200 transition"
                       >
                         Edit
                       </button>
                     )}
-                    <button onClick={() => setShowDeleteModal(property._id)} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition">Delete</button>
+                    <button onClick={() => setShowDeleteModal(property._id)} className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 border border-red-200 rounded transition">Delete</button>
                   </div>
                 </div>
               </div>

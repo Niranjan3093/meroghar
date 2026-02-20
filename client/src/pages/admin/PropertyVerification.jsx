@@ -186,12 +186,20 @@ function PropertyVerification() {
 
                   <div className="flex items-center text-gray-700">
                     <FiUser className="mr-2 text-gray-400" />
-                    <span>
-                      Host: {property.host?.name || 'Unknown'}
-                      {property.host?.rating > 0 && (
-                        <span className="ml-2 flex items-center gap-1"><FiStar className="w-4 h-4 text-yellow-500 fill-yellow-500" /> {property.host.rating.toFixed(1)}</span>
+                    <div className="flex items-center gap-2">
+                      <span>
+                        Host: {property.host?.name || 'Unknown'}
+                        {property.host?.rating > 0 && (
+                          <span className="ml-2 flex items-center gap-1"><FiStar className="w-4 h-4 text-yellow-500 fill-yellow-500" /> {property.host.rating.toFixed(1)}</span>
+                        )}
+                      </span>
+                      {property.host?.isVerified && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                          <FiCheck className="w-3 h-3" />
+                          Verified
+                        </span>
                       )}
-                    </span>
+                    </div>
                   </div>
                 </div>
 

@@ -300,6 +300,34 @@ export const unbanUser = async (req, res, next) => {
   }
 };
 
+// @desc    Verify or unverify a user
+// @route   PUT /api/admin/users/:id/verify
+// @access  Private/Admin
+export const verifyUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    // Toggle verification status
+    user.isVerified = !user.isVerified;
+    await user.save();
+
+    const action = user.isVerified ? 'verified' : 'unverified';
+
+    res.json({
+      success: true,
+      message: `User ${action} successfully`,
+      data: user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get all properties (admin view - all statuses)
 // @route   GET /api/admin/properties
 // @access  Private/Admin
