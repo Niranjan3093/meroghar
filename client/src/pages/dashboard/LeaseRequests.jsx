@@ -6,7 +6,7 @@ import { toast } from 'react-toastify'
 import { 
   FiHome, FiCalendar, FiDollarSign, FiClock, 
   FiCheck, FiX, FiAlertCircle, FiUser, FiMessageSquare,
-  FiFileText, FiChevronRight, FiFilter, FiDownload, FiCheckCircle
+  FiFileText, FiChevronRight, FiFilter, FiDownload, FiCheckCircle, FiRefreshCw
 } from 'react-icons/fi'
 
 function LeaseRequests() {
@@ -15,6 +15,7 @@ function LeaseRequests() {
   const { user } = useAuthStore()
   const [leaseRequests, setLeaseRequests] = useState([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [filter, setFilter] = useState('all')
   const [showResponseModal, setShowResponseModal] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState(null)
@@ -25,32 +26,47 @@ function LeaseRequests() {
   useEffect(() => {
     fetchLeaseRequests()
     
-    // Refresh data when user returns to this page or when location changes
+    // Refresh data when user returns to this page
     const handleFocus = () => {
       fetchLeaseRequests()
     }
     
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
-  }, [location.pathname]) // Re-fetch when path changes
+  }, [])
+
+  useEffect(() => {
+    // Auto-refresh every 3 seconds to pick up signature updates
+    const interval = setInterval(fetchLeaseRequests, 3000)
+    return () => clearInterval(interval)
+  }, [])
 
   const fetchLeaseRequests = async () => {
     try {
-      setLoading(true)
       const response = await leaseRequestsAPI.getAll()
       const requests = response.data.data || []
       console.log('Lease Requests Fetched:', requests.map(r => ({ 
         id: r._id, 
         status: r.status, 
-        depositPaid: r.securityDepositPaid 
+        leaseStatus: r.lease?.status,
+        hostSigned: r.lease?.hostSignature?.signed,
+        tenantSigned: r.lease?.tenantSignature?.signed
       })))
       setLeaseRequests(requests)
     } catch (error) {
       console.error('Failed to fetch lease requests:', error)
-      toast.error('Failed to load lease requests')
+      if (loading) {
+        toast.error('Failed to load lease requests')
+      }
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
+  }
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true)
+    await fetchLeaseRequests()
   }
 
   const handleAction = (request, action) => {
@@ -113,7 +129,17 @@ function LeaseRequests() {
     )
   }
 
-  const filteredRequests = leaseRequests.filter(req => {
+  // Hide completed requests once the lease is active OR both parties have signed
+  const pendingRequests = leaseRequests.filter(req => {
+    if (req.status === 'completed') {
+      const leaseActive = req.lease?.status === 'active'
+      const bothSigned = req.lease?.hostSignature?.signed && req.lease?.tenantSignature?.signed
+      if (leaseActive || bothSigned) return false
+    }
+    return true
+  })
+
+  const filteredRequests = pendingRequests.filter(req => {
     if (filter === 'all') return true
     return req.status === filter
   })
@@ -142,36 +168,60 @@ function LeaseRequests() {
           </p>
         </div>
         
-        {/* Filter */}
-        <div className="flex items-center space-x-2">
-          <FiFilter className="text-gray-400" />
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        {/* Filter and Refresh */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            className="p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition disabled:opacity-60"
+            title="Refresh data"
           >
-            <option value="all">All Requests</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="completed">Completed</option>
-          </select>
+            <FiRefreshCw className={`${refreshing ? 'animate-spin' : ''}`} size={20} />
+          </button>
+          <div className="flex items-center space-x-2">
+            <FiFilter className="text-gray-400" />
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="all">All Requests</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Requests List */}
-      {/* Alert for completed requests needing signatures */}
-      {leaseRequests.some(r => r.status === 'completed' && r.lease) && (
-        <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg mb-6">
-          <div className="flex items-center">
-            <FiCheck className="text-green-600 text-xl mr-3" />
-            <div>
-              <h3 className="text-sm font-medium text-green-800">Payment Completed! 🎉</h3>
-              <p className="text-sm text-green-700 mt-1">
-                Your security deposit has been processed and your lease has been created. Click "Sign Contract" below to complete the process.
-              </p>
+      {/* Alert for completed requests needing signatures (only when lease is NOT yet active) */}
+      {pendingRequests.some(r =>
+        r.status === 'completed' &&
+        r.lease &&
+        r.lease.status !== 'active' &&
+        (!r.lease?.hostSignature?.signed || !r.lease?.tenantSignature?.signed)
+      ) && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 p-4 rounded-lg mb-6 shadow-sm">
+          <div className="flex items-start justify-between">
+            <div className="flex items-start flex-1">
+              <FiCheck className="text-green-600 text-2xl mr-3 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-900 text-base">Payment Completed! 🎉</h3>
+                <p className="text-sm text-green-800 mt-1">
+                  Your security deposit has been processed and your lease has been created. Please sign the contract below to activate your lease.
+                </p>
+              </div>
             </div>
+            <button
+              onClick={handleManualRefresh}
+              disabled={refreshing}
+              className="ml-2 px-3 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition disabled:opacity-60 flex-shrink-0"
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
         </div>
       )}
@@ -198,7 +248,15 @@ function LeaseRequests() {
         </div>
       ) : (
         <div className="space-y-6">
-          {filteredRequests.map((request) => (
+          {filteredRequests.map((request) => {
+            // Never render a completed request if both parties have signed or lease is active
+            if (request.status === 'completed') {
+              const leaseActive = request.lease?.status === 'active'
+              const bothSigned = request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed
+              if (leaseActive || bothSigned) return null
+            }
+
+            return (
             <div 
               key={request._id}
               className={`rounded-xl border ${
@@ -218,7 +276,9 @@ function LeaseRequests() {
                           {request.property?.title || 'Property'}
                         </h3>
                       </div>
-                      <p className="text-lg text-gray-600">Lease Agreement Active</p>
+                      <p className="text-lg text-gray-600">
+                        {request.lease?.status === 'active' ? 'Active Lease Agreement' : 'Lease Awaiting Signatures'}
+                      </p>
                     </div>
                     <div>
                       {getStatusBadge(request.status)}
@@ -287,7 +347,11 @@ function LeaseRequests() {
                   </div>
 
                   {/* Contract Status */}
-                  <div className="bg-white rounded-lg p-5 border border-gray-200">
+                  <div className={`rounded-lg p-5 border ${
+                    request.lease?.status === 'active' || (request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed)
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-blue-50 border-blue-200'
+                  }`}>
                     <p className="text-sm font-semibold text-gray-700 mb-3">Contract Status</p>
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2">
@@ -303,11 +367,15 @@ function LeaseRequests() {
                         </span>
                       </div>
                     </div>
+                    {request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed && (
+                      <p className="text-xs text-green-700 mt-3 font-medium">✓ All parties have signed. Lease is active!</p>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
                   <div className="flex gap-3 pt-2">
-                    {request.lease?.docusign?.status === 'completed' || (request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed) ? (
+                    {/* Show View Lease/Download when lease is active OR both parties have signed */}
+                    {(request.lease?.status === 'active' || (request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed)) ? (
                       <>
                         <button
                           onClick={() => navigate(`/dashboard/leases`)}
@@ -425,27 +493,6 @@ function LeaseRequests() {
                       <FiMessageSquare />
                     </button>
                   )}
-
-                  {/* View Lease for Completed */}
-                  {request.status === 'completed' && request.lease && (
-                    <>
-                      {request.lease.docusign?.status === 'completed' || (request.lease.hostSignature?.signed && request.lease.tenantSignature?.signed) ? (
-                        <button
-                          onClick={() => navigate(`/dashboard/leases`)}
-                          className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition flex items-center"
-                        >
-                          <FiCheckCircle className="mr-1" /> View Lease
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => navigate(`/dashboard/leases`)}
-                          className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition flex items-center font-medium"
-                        >
-                          <FiFileText className="mr-1" /> Sign Contract
-                        </button>
-                      )}
-                    </>
-                  )}
                 </div>
               </div>
 
@@ -480,7 +527,8 @@ function LeaseRequests() {
               </>
               )}
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

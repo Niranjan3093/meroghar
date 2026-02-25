@@ -477,6 +477,10 @@ function Properties() {
                   }}
                   title={property.title}
                   onClick={() => navigate(`/properties/${property._id}`)}
+                  label={{
+                    text: '🏠',
+                    fontSize: '20px'
+                  }}
                 />
               ))}
 
@@ -484,7 +488,10 @@ function Properties() {
                 <Marker
                   position={userLocation}
                   title="Your current location"
-                  label="You"
+                  label={{
+                    text: '📍',
+                    fontSize: '20px'
+                  }}
                 />
               )}
             </GoogleMapComponent>

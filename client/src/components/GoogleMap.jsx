@@ -144,6 +144,11 @@ const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
             onDragEnd={readOnly ? undefined : handleMarkerDragEnd}
             animation={window.google?.maps?.Animation?.DROP}
             title={readOnly ? "Property Location" : "Property Location (Drag to adjust)"}
+            label={{
+              text: '📍',
+              fontSize: '24px',
+              color: '#ef4444'
+            }}
           />
         )}
       </GoogleMapComponent>

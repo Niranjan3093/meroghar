@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { propertiesAPI, messagesAPI, usersAPI } from '../../utils/api'
+import { propertiesAPI, messagesAPI, usersAPI, leaseRequestsAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
 import { toast } from 'react-toastify'
 import UserAvatar from '../../components/UserAvatar'
@@ -9,7 +9,8 @@ import BookVisit from '../../components/BookVisit'
 import { 
   FiMapPin, FiHome, FiUser, FiPhone, FiMail, FiCalendar, 
   FiDollarSign, FiStar, FiHeart, FiShare2, FiChevronLeft, 
-  FiChevronRight, FiMessageSquare, FiCheck, FiEye
+  FiChevronRight, FiMessageSquare, FiCheck, FiEye,
+  FiFileText, FiClock, FiAlertCircle, FiX
 } from 'react-icons/fi'
 
 function PropertyDetails() {
@@ -24,6 +25,14 @@ function PropertyDetails() {
   const [sendingMessage, setSendingMessage] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [showLeaseRequestModal, setShowLeaseRequestModal] = useState(false)
+  const [showBookVisitModal, setShowBookVisitModal] = useState(false)
+  const [leaseRequestData, setLeaseRequestData] = useState({
+    proposedMoveIn: '',
+    proposedDuration: 'yearly',
+    message: ''
+  })
+  const [submittingLeaseRequest, setSubmittingLeaseRequest] = useState(false)
 
   useEffect(() => {
     fetchProperty()
@@ -109,6 +118,34 @@ function PropertyDetails() {
           toast.error('Failed to share')
         }
       }
+    }
+  }
+
+  const handleLeaseRequest = async (e) => {
+    e.preventDefault()
+    if (!user) {
+      toast.error('Please login to request a lease')
+      navigate('/login')
+      return
+    }
+    if (user._id === property.host?._id) {
+      toast.error('You cannot request a lease on your own property')
+      return
+    }
+
+    try {
+      setSubmittingLeaseRequest(true)
+      await leaseRequestsAPI.createRequest({
+        propertyId: property._id,
+        ...leaseRequestData
+      })
+      toast.success('Lease request submitted successfully!')
+      setShowLeaseRequestModal(false)
+      setLeaseRequestData({ proposedMoveIn: '', proposedDuration: 'yearly', message: '' })
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to submit lease request')
+    } finally {
+      setSubmittingLeaseRequest(false)
     }
   }
 
@@ -395,14 +432,7 @@ function PropertyDetails() {
               </div>
             )}
 
-            {/* Book Visit Section */}
-            {user && user._id !== property.host?._id && (
-              <BookVisit 
-                propertyId={property._id} 
-                hostName={property.host?.name}
-                hostId={property.host?._id}
-              />
-            )}
+
           </div>
         </div>
 
@@ -451,13 +481,50 @@ function PropertyDetails() {
                 You are viewing this property in public view mode
               </div>
             ) : (
-              <button
-                onClick={() => setShowContactForm(true)}
-                className="w-full btn-primary flex items-center justify-center"
-              >
-                <FiMessageSquare className="mr-2" />
-                Contact Host
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      toast.error('Please login to request a lease')
+                      navigate('/login')
+                      return
+                    }
+                    setShowLeaseRequestModal(true)
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+                >
+                  <FiFileText />
+                  Request Lease
+                </button>
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      toast.error('Please login to book a visit')
+                      navigate('/login')
+                      return
+                    }
+                    setShowBookVisitModal(true)
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium"
+                >
+                  <FiCalendar />
+                  Book a Visit
+                </button>
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      toast.error('Please login to contact the host')
+                      navigate('/login')
+                      return
+                    }
+                    setShowContactForm(true)
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+                >
+                  <FiMessageSquare />
+                  Contact Host
+                </button>
+              </div>
             )}
           </div>
 
@@ -506,6 +573,123 @@ function PropertyDetails() {
           )}
         </div>
       </div>
+
+      {/* Book Visit Modal */}
+      {showBookVisitModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900">Book a Property Visit</h3>
+              <button
+                onClick={() => setShowBookVisitModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <FiX />
+              </button>
+            </div>
+            <div className="p-6">
+              <BookVisit
+                propertyId={property._id}
+                hostName={property.host?.name}
+                hostId={property.host?._id}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lease Request Modal */}
+      {showLeaseRequestModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Request Lease</h3>
+              <button
+                onClick={() => setShowLeaseRequestModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <p className="font-medium text-gray-900">{property.title}</p>
+              <p className="text-sm text-gray-600">NPR {property.rent?.toLocaleString()}/month</p>
+            </div>
+
+            <form onSubmit={handleLeaseRequest} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FiCalendar className="inline mr-1" />
+                  Proposed Move-in Date
+                </label>
+                <input
+                  type="date"
+                  value={leaseRequestData.proposedMoveIn}
+                  onChange={(e) => setLeaseRequestData({ ...leaseRequestData, proposedMoveIn: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <FiClock className="inline mr-1" />
+                  Lease Duration
+                </label>
+                <select
+                  value={leaseRequestData.proposedDuration}
+                  onChange={(e) => setLeaseRequestData({ ...leaseRequestData, proposedDuration: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="3-months">3 Months</option>
+                  <option value="6-months">6 Months</option>
+                  <option value="yearly">Yearly (12 months)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Message to Host (optional)
+                </label>
+                <textarea
+                  value={leaseRequestData.message}
+                  onChange={(e) => setLeaseRequestData({ ...leaseRequestData, message: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  placeholder="Introduce yourself and why you're interested..."
+                />
+              </div>
+
+              <div className="bg-yellow-50 rounded-lg p-3">
+                <p className="text-sm text-yellow-800 flex items-start gap-2">
+                  <FiAlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  Once approved, you'll be asked to pay the security deposit to confirm your lease.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowLeaseRequestModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingLeaseRequest}
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-60"
+                >
+                  {submittingLeaseRequest ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Contact Form Modal */}
       {showContactForm && (

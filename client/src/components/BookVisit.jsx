@@ -225,8 +225,7 @@ function BookVisit({ propertyId, hostName, hostId }) {
   };
 
   return (
-    <div className="mt-8 border-t pt-8">
-      <h3 className="text-2xl font-bold text-gray-900 mb-4">Book a Property Visit</h3>
+    <div>
       
       {!showForm ? (
         <div className="flex items-center gap-4">

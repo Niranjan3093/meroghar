@@ -633,16 +633,6 @@ function Messages() {
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  {/* Lease Request Button */}
-                  {user?.role === 'tenant' && selectedConversation.property && !hasExistingLeaseRequest() && (
-                    <button
-                      onClick={() => setShowLeaseRequestModal(true)}
-                      className="flex items-center gap-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
-                    >
-                      <FiFileText />
-                      Request Lease
-                    </button>
-                  )}
                   
                   {/* Options Menu */}
                   <div className="relative" ref={optionsMenuRef}>

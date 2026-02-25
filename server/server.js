@@ -31,9 +31,6 @@ import visitSittingRoutes from './routes/visitSittingRoutes.js';
 // Load env vars
 dotenv.config();
 
-// Connect to database
-connectDB();
-
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -99,6 +96,9 @@ setIOInstance(io);
 startCronJobs();
 
 const PORT = process.env.PORT || 5000;
+
+// Connect to database
+connectDB();
 
 let tryPort = PORT;
 const startServer = () => {
