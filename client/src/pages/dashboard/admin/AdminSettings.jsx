@@ -120,6 +120,8 @@ function AdminSettings() {
                 value={settings.platformName}
                 onChange={(e) => handleChange('platformName', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                maxLength={50}
+                required
               />
             </div>
             
@@ -132,6 +134,8 @@ function AdminSettings() {
                 value={settings.supportEmail}
                 onChange={(e) => handleChange('supportEmail', e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                maxLength={100}
+                required
               />
             </div>
             
@@ -142,8 +146,10 @@ function AdminSettings() {
               <input
                 type="number"
                 value={settings.maxPropertiesPerHost}
-                onChange={(e) => handleChange('maxPropertiesPerHost', parseInt(e.target.value))}
+                onChange={(e) => handleChange('maxPropertiesPerHost', parseInt(e.target.value) || 0)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                min={1}
+                max={100}
               />
             </div>
           </div>
@@ -258,8 +264,10 @@ function AdminSettings() {
               <input
                 type="number"
                 value={settings.maxLoginAttempts}
-                onChange={(e) => handleChange('maxLoginAttempts', parseInt(e.target.value))}
+                onChange={(e) => handleChange('maxLoginAttempts', parseInt(e.target.value) || 0)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                min={1}
+                max={20}
               />
             </div>
           </div>
@@ -282,8 +290,10 @@ function AdminSettings() {
               <input
                 type="number"
                 value={settings.defaultLeaseDuration}
-                onChange={(e) => handleChange('defaultLeaseDuration', parseInt(e.target.value))}
+                onChange={(e) => handleChange('defaultLeaseDuration', parseInt(e.target.value) || 0)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                min={1}
+                max={60}
               />
             </div>
             
@@ -294,8 +304,10 @@ function AdminSettings() {
               <input
                 type="number"
                 value={settings.securityDepositMonths}
-                onChange={(e) => handleChange('securityDepositMonths', parseInt(e.target.value))}
+                onChange={(e) => handleChange('securityDepositMonths', parseInt(e.target.value) || 0)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                min={0}
+                max={12}
               />
             </div>
             
@@ -306,8 +318,10 @@ function AdminSettings() {
               <input
                 type="number"
                 value={settings.lateFeePercentage}
-                onChange={(e) => handleChange('lateFeePercentage', parseInt(e.target.value))}
+                onChange={(e) => handleChange('lateFeePercentage', parseInt(e.target.value) || 0)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                min={0}
+                max={100}
               />
             </div>
           </div>
@@ -347,8 +361,10 @@ function AdminSettings() {
                 value={settings.maintenanceMessage}
                 onChange={(e) => handleChange('maintenanceMessage', e.target.value)}
                 rows={3}
+                maxLength={500}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
               />
+              <p className="text-xs text-gray-400 mt-1">{settings.maintenanceMessage.length}/500 characters</p>
             </div>
           </div>
         </div>

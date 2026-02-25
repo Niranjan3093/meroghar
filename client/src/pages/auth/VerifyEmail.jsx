@@ -13,6 +13,8 @@ function VerifyEmail() {
   const email = location.state?.email
 
   const handleChange = (index, value) => {
+    // Only allow digits
+    if (value && !/^[0-9]$/.test(value)) return
     if (value.length > 1) return
     const newCode = [...code]
     newCode[index] = value
@@ -80,9 +82,29 @@ function VerifyEmail() {
                     key={index}
                     id={`code-${index}`}
                     type="text"
+                    inputMode="numeric"
                     maxLength="1"
                     value={digit}
                     onChange={(e) => handleChange(index, e.target.value)}
+                    onKeyDown={(e) => {
+                      // Handle backspace to move to previous input
+                      if (e.key === 'Backspace' && !digit && index > 0) {
+                        document.getElementById(`code-${index - 1}`)?.focus()
+                      }
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault()
+                      const paste = e.clipboardData.getData('text').replace(/[^0-9]/g, '').slice(0, 6)
+                      if (paste) {
+                        const newCode = [...code]
+                        for (let i = 0; i < paste.length && i + index < 6; i++) {
+                          newCode[i + index] = paste[i]
+                        }
+                        setCode(newCode)
+                        const focusIdx = Math.min(index + paste.length, 5)
+                        document.getElementById(`code-${focusIdx}`)?.focus()
+                      }
+                    }}
                     className="w-12 h-12 text-center text-2xl border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 ))}

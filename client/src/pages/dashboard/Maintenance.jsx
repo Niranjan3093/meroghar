@@ -87,6 +87,19 @@ function Maintenance() {
 
   const handleCreateRequest = async (e) => {
     e.preventDefault()
+    // Validate
+    if (!newRequest.property) {
+      toast.error('Please select a property')
+      return
+    }
+    if (!newRequest.title.trim() || newRequest.title.trim().length < 3) {
+      toast.error('Issue title must be at least 3 characters')
+      return
+    }
+    if (!newRequest.description.trim() || newRequest.description.trim().length < 10) {
+      toast.error('Description must be at least 10 characters')
+      return
+    }
     try {
       setSubmitting(true)
       await maintenanceAPI.create({
@@ -349,7 +362,10 @@ function Maintenance() {
                   className="input-field"
                   placeholder="Brief description of the issue"
                   required
+                  minLength={3}
+                  maxLength={100}
                 />
+                <p className="text-xs text-gray-400 mt-1">{newRequest.title.length}/100 characters</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -389,7 +405,10 @@ function Maintenance() {
                   rows={4}
                   placeholder="Provide detailed description of the issue..."
                   required
+                  minLength={10}
+                  maxLength={1000}
                 />
+                <p className="text-xs text-gray-400 mt-1">{newRequest.description.length}/1000 characters</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Attachments</label>

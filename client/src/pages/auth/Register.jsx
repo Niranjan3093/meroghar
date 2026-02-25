@@ -50,9 +50,18 @@ function Register() {
                 <FiUser className="absolute left-3 top-3 text-gray-400" />
                 <input
                   type="text"
-                  {...register('name', { required: 'Name is required' })}
+                  {...register('name', {
+                    required: 'Name is required',
+                    minLength: { value: 2, message: 'Name must be at least 2 characters' },
+                    maxLength: { value: 50, message: 'Name must be less than 50 characters' },
+                    pattern: {
+                      value: /^[A-Za-z\s'-]+$/,
+                      message: 'Name can only contain letters, spaces, hyphens and apostrophes'
+                    }
+                  })}
                   className="input-field pl-10"
-                  placeholder="John Doe"
+                  placeholder="Your full name"
+                  maxLength={50}
                 />
               </div>
               {errors.name && (
@@ -71,13 +80,15 @@ function Register() {
                   type="email"
                   {...register('email', { 
                     required: 'Email is required',
+                    maxLength: { value: 100, message: 'Email must be less than 100 characters' },
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                       message: 'Invalid email address'
                     }
                   })}
                   className="input-field pl-10"
-                  placeholder="your@email.com"
+                  placeholder="your.email@example.com"
+                  maxLength={100}
                 />
               </div>
               {errors.email && (
@@ -94,11 +105,25 @@ function Register() {
                 <FiPhone className="absolute left-3 top-3 text-gray-400" />
                 <input
                   type="tel"
-                  {...register('phone')}
+                  {...register('phone', {
+                    pattern: {
+                      value: /^(\+977)?[0-9]{10}$/,
+                      message: 'Enter a valid Nepali phone number (e.g. 9800000000 or +9779800000000)'
+                    }
+                  })}
                   className="input-field pl-10"
-                  placeholder="+977 9800000000"
+                  placeholder="9800000000"
+                  maxLength={14}
+                  onKeyDown={(e) => {
+                    if (!/[0-9+]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
+                      e.preventDefault()
+                    }
+                  }}
                 />
               </div>
+              {errors.phone && (
+                <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
+              )}
             </div>
 
             {/* Role */}
@@ -132,6 +157,14 @@ function Register() {
                     minLength: {
                       value: 6,
                       message: 'Password must be at least 6 characters'
+                    },
+                    maxLength: {
+                      value: 128,
+                      message: 'Password must be less than 128 characters'
+                    },
+                    pattern: {
+                      value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/,
+                      message: 'Password must include uppercase, lowercase, and a number'
                     }
                   })}
                   className="input-field pl-10 pr-10"
@@ -203,6 +236,35 @@ function Register() {
               {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </form>
+
+          {/* OAuth Options */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or sign up with</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`}
+                className="btn-secondary"
+              >
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/facebook`}
+                className="btn-secondary"
+              >
+                Facebook
+              </button>
+            </div>
+          </div>
 
           {/* Login Link */}
           <p className="mt-6 text-center text-sm text-gray-600">

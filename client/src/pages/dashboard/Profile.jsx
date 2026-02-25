@@ -15,6 +15,8 @@ function Profile() {
     bio: user?.bio || '',
     avatar: user?.avatar || 'https://via.placeholder.com/150'
   })
+  const [profileErrors, setProfileErrors] = useState({})
+  const [passwordErrors, setPasswordErrors] = useState({})
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -29,8 +31,22 @@ function Profile() {
     marketingEmails: false
   })
 
+  const validateProfile = () => {
+    const errs = {}
+    if (!profileData.name.trim()) errs.name = 'Name is required'
+    else if (profileData.name.trim().length < 2) errs.name = 'Name must be at least 2 characters'
+    else if (!/^[A-Za-z\s'-]+$/.test(profileData.name.trim())) errs.name = 'Name can only contain letters, spaces, hyphens and apostrophes'
+    if (!profileData.email.trim()) errs.email = 'Email is required'
+    else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(profileData.email.trim())) errs.email = 'Invalid email address'
+    if (profileData.phone && !/^(\+977)?[0-9]{10}$/.test(profileData.phone.replace(/\s/g, ''))) errs.phone = 'Enter a valid Nepali phone number'
+    if (profileData.bio && profileData.bio.length > 500) errs.bio = 'Bio must be less than 500 characters'
+    setProfileErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault()
+    if (!validateProfile()) return
     setLoading(true)
     // API call would go here
     setTimeout(() => {
@@ -40,12 +56,20 @@ function Profile() {
     }, 1000)
   }
 
+  const validatePassword = () => {
+    const errs = {}
+    if (!passwordData.currentPassword) errs.currentPassword = 'Current password is required'
+    if (!passwordData.newPassword) errs.newPassword = 'New password is required'
+    else if (passwordData.newPassword.length < 6) errs.newPassword = 'Password must be at least 6 characters'
+    else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/.test(passwordData.newPassword)) errs.newPassword = 'Must include uppercase, lowercase, and a number'
+    if (passwordData.newPassword !== passwordData.confirmPassword) errs.confirmPassword = 'Passwords do not match'
+    setPasswordErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
   const handlePasswordChange = async (e) => {
     e.preventDefault()
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('Passwords do not match')
-      return
-    }
+    if (!validatePassword()) return
     setLoading(true)
     // API call would go here
     setTimeout(() => {
@@ -150,12 +174,19 @@ function Profile() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                     {editing ? (
-                      <input
-                        type="text"
-                        value={profileData.name}
-                        onChange={(e) => setProfileData({...profileData, name: e.target.value})}
-                        className="input-field"
-                      />
+                      <>
+                        <input
+                          type="text"
+                          value={profileData.name}
+                          onChange={(e) => {
+                            setProfileData({...profileData, name: e.target.value})
+                            if (profileErrors.name) setProfileErrors({...profileErrors, name: ''})
+                          }}
+                          className={`input-field ${profileErrors.name ? 'border-red-500' : ''}`}
+                          maxLength={50}
+                        />
+                        {profileErrors.name && <p className="text-red-500 text-sm mt-1">{profileErrors.name}</p>}
+                      </>
                     ) : (
                       <p className="text-gray-900 py-2">{profileData.name || '-'}</p>
                     )}
@@ -163,12 +194,19 @@ function Profile() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                     {editing ? (
-                      <input
-                        type="email"
-                        value={profileData.email}
-                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                        className="input-field"
-                      />
+                      <>
+                        <input
+                          type="email"
+                          value={profileData.email}
+                          onChange={(e) => {
+                            setProfileData({...profileData, email: e.target.value})
+                            if (profileErrors.email) setProfileErrors({...profileErrors, email: ''})
+                          }}
+                          className={`input-field ${profileErrors.email ? 'border-red-500' : ''}`}
+                          maxLength={100}
+                        />
+                        {profileErrors.email && <p className="text-red-500 text-sm mt-1">{profileErrors.email}</p>}
+                      </>
                     ) : (
                       <div className="flex items-center">
                         <p className="text-gray-900 py-2">{profileData.email || '-'}</p>
@@ -181,13 +219,25 @@ function Profile() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                     {editing ? (
-                      <input
-                        type="tel"
-                        value={profileData.phone}
-                        onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                        className="input-field"
-                        placeholder="+977 9800000000"
-                      />
+                      <>
+                        <input
+                          type="tel"
+                          value={profileData.phone}
+                          onChange={(e) => {
+                            setProfileData({...profileData, phone: e.target.value})
+                            if (profileErrors.phone) setProfileErrors({...profileErrors, phone: ''})
+                          }}
+                          className={`input-field ${profileErrors.phone ? 'border-red-500' : ''}`}
+                          placeholder="9800000000"
+                          maxLength={14}
+                          onKeyDown={(e) => {
+                            if (!/[0-9+]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
+                              e.preventDefault()
+                            }
+                          }}
+                        />
+                        {profileErrors.phone && <p className="text-red-500 text-sm mt-1">{profileErrors.phone}</p>}
+                      </>
                     ) : (
                       <div className="flex items-center">
                         <p className="text-gray-900 py-2">{profileData.phone || '-'}</p>
@@ -216,13 +266,21 @@ function Profile() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
                   {editing ? (
-                    <textarea
-                      value={profileData.bio}
-                      onChange={(e) => setProfileData({...profileData, bio: e.target.value})}
-                      className="input-field"
-                      rows={3}
-                      placeholder="Tell us about yourself..."
-                    />
+                    <>
+                      <textarea
+                        value={profileData.bio}
+                        onChange={(e) => {
+                          setProfileData({...profileData, bio: e.target.value})
+                          if (profileErrors.bio) setProfileErrors({...profileErrors, bio: ''})
+                        }}
+                        className={`input-field ${profileErrors.bio ? 'border-red-500' : ''}`}
+                        rows={3}
+                        placeholder="Tell us about yourself..."
+                        maxLength={500}
+                      />
+                      <p className="text-xs text-gray-400 mt-1">{profileData.bio.length}/500 characters</p>
+                      {profileErrors.bio && <p className="text-red-500 text-sm mt-1">{profileErrors.bio}</p>}
+                    </>
                   ) : (
                     <p className="text-gray-900 py-2">{profileData.bio || 'No bio added'}</p>
                   )}
@@ -286,30 +344,47 @@ function Profile() {
                     <input
                       type="password"
                       value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({...passwordData, currentPassword: e.target.value})}
-                      className="input-field"
+                      onChange={(e) => {
+                        setPasswordData({...passwordData, currentPassword: e.target.value})
+                        if (passwordErrors.currentPassword) setPasswordErrors({...passwordErrors, currentPassword: ''})
+                      }}
+                      className={`input-field ${passwordErrors.currentPassword ? 'border-red-500' : ''}`}
                       required
+                      maxLength={128}
                     />
+                    {passwordErrors.currentPassword && <p className="text-red-500 text-sm mt-1">{passwordErrors.currentPassword}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
                     <input
                       type="password"
                       value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
-                      className="input-field"
+                      onChange={(e) => {
+                        setPasswordData({...passwordData, newPassword: e.target.value})
+                        if (passwordErrors.newPassword) setPasswordErrors({...passwordErrors, newPassword: ''})
+                      }}
+                      className={`input-field ${passwordErrors.newPassword ? 'border-red-500' : ''}`}
                       required
+                      minLength={6}
+                      maxLength={128}
                     />
+                    {passwordErrors.newPassword && <p className="text-red-500 text-sm mt-1">{passwordErrors.newPassword}</p>}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
                     <input
                       type="password"
                       value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
-                      className="input-field"
+                      onChange={(e) => {
+                        setPasswordData({...passwordData, confirmPassword: e.target.value})
+                        if (passwordErrors.confirmPassword) setPasswordErrors({...passwordErrors, confirmPassword: ''})
+                      }}
+                      className={`input-field ${passwordErrors.confirmPassword ? 'border-red-500' : ''}`}
                       required
+                      minLength={6}
+                      maxLength={128}
                     />
+                    {passwordErrors.confirmPassword && <p className="text-red-500 text-sm mt-1">{passwordErrors.confirmPassword}</p>}
                   </div>
                   <button type="submit" disabled={loading} className="btn-primary">
                     {loading ? 'Updating...' : 'Update Password'}

@@ -49,13 +49,16 @@ function Login() {
                   type="email"
                   {...register('email', { 
                     required: 'Email is required',
+                    maxLength: { value: 100, message: 'Email must be less than 100 characters' },
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                       message: 'Invalid email address'
-                    }
+                    },
+                    setValueAs: v => v.trim()
                   })}
                   className="input-field pl-10"
                   placeholder="your@email.com"
+                  maxLength={100}
                 />
               </div>
               {errors.email && (
@@ -77,6 +80,10 @@ function Login() {
                     minLength: {
                       value: 6,
                       message: 'Password must be at least 6 characters'
+                    },
+                    maxLength: {
+                      value: 128,
+                      message: 'Password must be less than 128 characters'
                     }
                   })}
                   className="input-field pl-10 pr-10"

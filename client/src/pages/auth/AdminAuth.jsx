@@ -16,6 +16,7 @@ function AdminAuth() {
     password: '',
     confirmPassword: ''
   })
+  const [errors, setErrors] = useState({})
 
   // Redirect if already logged in as admin
   useEffect(() => {
@@ -25,19 +26,58 @@ function AdminAuth() {
   }, [user, navigate])
 
   const handleChange = (e) => {
+    const { name, value } = e.target
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     })
+    // Clear error on change
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' })
+    }
+  }
+
+  const validate = () => {
+    const newErrors = {}
+    
+    if (!isLogin) {
+      if (!formData.name.trim()) {
+        newErrors.name = 'Name is required'
+      } else if (formData.name.trim().length < 2) {
+        newErrors.name = 'Name must be at least 2 characters'
+      } else if (!/^[A-Za-z\s'-]+$/.test(formData.name.trim())) {
+        newErrors.name = 'Name can only contain letters, spaces, hyphens and apostrophes'
+      }
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required'
+    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email.trim())) {
+      newErrors.email = 'Invalid email address'
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required'
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters'
+    }
+
+    if (!isLogin) {
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = 'Please confirm your password'
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match'
+      }
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!isLogin && formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match')
-      return
-    }
+    if (!validate()) return
 
     setLoading(true)
     try {
@@ -109,10 +149,12 @@ function AdminAuth() {
                     value={formData.name}
                     onChange={handleChange}
                     required={!isLogin}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    maxLength={50}
+                    className={`w-full pl-10 pr-4 py-3 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
                     placeholder="Enter your full name"
                   />
                 </div>
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
               </div>
             )}
 
@@ -128,10 +170,12 @@ function AdminAuth() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  maxLength={100}
+                  className={`w-full pl-10 pr-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
                   placeholder="admin@example.com"
                 />
               </div>
+              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
             </div>
 
             <div>
@@ -147,10 +191,12 @@ function AdminAuth() {
                   onChange={handleChange}
                   required
                   minLength={6}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  maxLength={128}
+                  className={`w-full pl-10 pr-4 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
                   placeholder="Enter your password"
                 />
               </div>
+              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
             </div>
 
             {!isLogin && (
@@ -167,10 +213,12 @@ function AdminAuth() {
                     onChange={handleChange}
                     required={!isLogin}
                     minLength={6}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    maxLength={128}
+                    className={`w-full pl-10 pr-4 py-3 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
                     placeholder="Confirm your password"
                   />
                 </div>
+                {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
               </div>
             )}
 

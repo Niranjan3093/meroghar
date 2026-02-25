@@ -53,7 +53,7 @@ function Sidebar() {
   }
 
   return (
-    <aside className="w-64 bg-white h-[calc(100vh-73px)] shadow-sm border-r border-gray-100 sticky top-[73px] flex flex-col">
+    <aside className="w-64 flex-shrink-0 bg-white h-screen shadow-sm border-r border-gray-100 overflow-y-auto flex flex-col">
       <div className="flex-1 p-4 overflow-y-auto">
         {/* User Info */}
         <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-xl">

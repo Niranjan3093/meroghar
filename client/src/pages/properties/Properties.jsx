@@ -170,10 +170,15 @@ function Properties() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Min Rent (NPR)</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={filters.minRent}
-                  onChange={(e) => setFilters({ ...filters, minRent: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '')
+                    setFilters({ ...filters, minRent: val })
+                  }}
                   placeholder="0"
+                  maxLength={8}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                 />
               </div>
@@ -181,10 +186,15 @@ function Properties() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Max Rent (NPR)</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={filters.maxRent}
-                  onChange={(e) => setFilters({ ...filters, maxRent: e.target.value })}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '')
+                    setFilters({ ...filters, maxRent: val })
+                  }}
                   placeholder="Any"
+                  maxLength={8}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                 />
               </div>

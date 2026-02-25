@@ -37,6 +37,7 @@ function AddProperty() {
     // Images
     images: []
   })
+  const [formErrors, setFormErrors] = useState({})
 
   const steps = [
     { number: 1, title: 'Basic Info', icon: FiHome },
@@ -64,6 +65,38 @@ function AddProperty() {
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
+    if (formErrors[name]) setFormErrors({ ...formErrors, [name]: '' })
+  }
+
+  // Restrict input to digits only for number fields
+  const handleNumericKeyDown = (e) => {
+    if (!/[0-9]/.test(e.key) && !['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'].includes(e.key) && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault()
+    }
+  }
+
+  const validateStep = (step) => {
+    const errs = {}
+    if (step === 1) {
+      if (!formData.title.trim()) errs.title = 'Title is required'
+      else if (formData.title.trim().length < 5) errs.title = 'Title must be at least 5 characters'
+      if (!formData.description.trim()) errs.description = 'Description is required'
+      else if (formData.description.trim().length < 20) errs.description = 'Description must be at least 20 characters'
+    } else if (step === 2) {
+      if (!formData.address.trim()) errs.address = 'Street address is required'
+      if (!formData.city) errs.city = 'City is required'
+    } else if (step === 3) {
+      if (formData.area && (isNaN(formData.area) || Number(formData.area) <= 0)) errs.area = 'Area must be a positive number'
+      if (formData.area && Number(formData.area) > 100000) errs.area = 'Area seems too large'
+    } else if (step === 4) {
+      if (!formData.monthlyRent) errs.monthlyRent = 'Monthly rent is required'
+      else if (isNaN(formData.monthlyRent) || Number(formData.monthlyRent) <= 0) errs.monthlyRent = 'Rent must be a positive number'
+      else if (Number(formData.monthlyRent) > 10000000) errs.monthlyRent = 'Rent amount seems too high'
+      if (!formData.securityDeposit) errs.securityDeposit = 'Security deposit is required'
+      else if (isNaN(formData.securityDeposit) || Number(formData.securityDeposit) < 0) errs.securityDeposit = 'Deposit must be a non-negative number'
+    }
+    setFormErrors(errs)
+    return Object.keys(errs).length === 0
   }
 
   const toggleAmenity = (amenity) => {
@@ -100,6 +133,7 @@ function AddProperty() {
   }
 
   const nextStep = () => {
+    if (!validateStep(currentStep)) return
     if (currentStep < 5) setCurrentStep(currentStep + 1)
   }
 
@@ -228,10 +262,12 @@ function AddProperty() {
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  className="input-field"
+                  className={`input-field ${formErrors.title ? 'border-red-500' : ''}`}
                   placeholder="e.g., Spacious 2BHK Apartment in Thamel"
                   required
+                  maxLength={100}
                 />
+                {formErrors.title && <p className="text-red-500 text-sm mt-1">{formErrors.title}</p>}
               </div>
 
               <div>
@@ -261,11 +297,14 @@ function AddProperty() {
                   name="description"
                   value={formData.description}
                   onChange={handleChange}
-                  className="input-field"
+                  className={`input-field ${formErrors.description ? 'border-red-500' : ''}`}
                   rows={5}
                   placeholder="Describe your property, its features, and the neighborhood..."
                   required
+                  maxLength={2000}
                 />
+                <p className="text-xs text-gray-400 mt-1">{formData.description.length}/2000 characters</p>
+                {formErrors.description && <p className="text-red-500 text-sm mt-1">{formErrors.description}</p>}
               </div>
             </div>
           )}
@@ -282,10 +321,12 @@ function AddProperty() {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  className="input-field"
+                  className={`input-field ${formErrors.address ? 'border-red-500' : ''}`}
                   placeholder="e.g., 123 Main Street"
                   required
+                  maxLength={200}
                 />
+                {formErrors.address && <p className="text-red-500 text-sm mt-1">{formErrors.address}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -295,7 +336,7 @@ function AddProperty() {
                     name="city"
                     value={formData.city}
                     onChange={handleChange}
-                    className="input-field"
+                    className={`input-field ${formErrors.city ? 'border-red-500' : ''}`}
                     required
                   >
                     <option value="">Select city</option>
@@ -376,13 +417,17 @@ function AddProperty() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Area (sq.ft)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     name="area"
                     value={formData.area}
                     onChange={handleChange}
-                    className="input-field"
+                    className={`input-field ${formErrors.area ? 'border-red-500' : ''}`}
                     placeholder="e.g., 1200"
+                    maxLength={6}
+                    onKeyDown={handleNumericKeyDown}
                   />
+                  {formErrors.area && <p className="text-red-500 text-sm mt-1">{formErrors.area}</p>}
                 </div>
               </div>
 
@@ -446,30 +491,38 @@ function AddProperty() {
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">NPR</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       name="monthlyRent"
                       value={formData.monthlyRent}
                       onChange={handleChange}
-                      className="input-field pl-14"
+                      className={`input-field pl-14 ${formErrors.monthlyRent ? 'border-red-500' : ''}`}
                       placeholder="25000"
                       required
+                      maxLength={8}
+                      onKeyDown={handleNumericKeyDown}
                     />
                   </div>
+                  {formErrors.monthlyRent && <p className="text-red-500 text-sm mt-1">{formErrors.monthlyRent}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Security Deposit (NPR) *</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">NPR</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       name="securityDeposit"
                       value={formData.securityDeposit}
                       onChange={handleChange}
-                      className="input-field pl-14"
+                      className={`input-field pl-14 ${formErrors.securityDeposit ? 'border-red-500' : ''}`}
                       placeholder="50000"
                       required
+                      maxLength={8}
+                      onKeyDown={handleNumericKeyDown}
                     />
                   </div>
+                  {formErrors.securityDeposit && <p className="text-red-500 text-sm mt-1">{formErrors.securityDeposit}</p>}
                 </div>
               </div>
 

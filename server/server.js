@@ -11,6 +11,7 @@ import connectDB from './config/db.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import { setupSocketIO } from './socket/index.js';
 import { startCronJobs, setIOInstance } from './cron/index.js';
+import configurePassport from './config/passport.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
@@ -59,12 +60,9 @@ app.use(session({
 }));
 
 // Passport initialization
+configurePassport();
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Passport serialization
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((user, done) => done(null, user));
 
 // Make io accessible to routes
 app.set('io', io);
