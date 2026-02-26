@@ -10,10 +10,36 @@ import { cloudinary } from '../middleware/uploadMiddleware.js';
 // @access  Public
 export const register = async (req, res, next) => {
   try {
-    const { name, email, phone, password, role } = req.body;
+    let { name, email, phone, password, role } = req.body;
 
-    // Check if user exists
-    const userExists = await User.findOne({ $or: [{ email }, { phone }] });
+    // Normalize and validate inputs
+    if (!email || typeof email !== 'string') {
+      res.status(400);
+      throw new Error('Valid email is required');
+    }
+    
+    // Trim and lowercase email
+    email = email.trim().toLowerCase();
+    
+    // Trim name and normalize phone
+    if (name) {
+      name = name.trim();
+    }
+    if (phone && typeof phone === 'string') {
+      phone = phone.trim();
+      // Set phone to null if it's empty after trimming
+      phone = phone === '' ? null : phone;
+    } else {
+      phone = null;
+    }
+
+    // Check if user exists - only check non-null phone
+    const query = { email };
+    if (phone) {
+      query.$or = [{ email }, { phone }];
+    }
+    
+    const userExists = await User.findOne(query);
     if (userExists) {
       res.status(400);
       throw new Error('User already exists');

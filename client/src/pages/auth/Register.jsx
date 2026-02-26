@@ -31,9 +31,20 @@ function Register() {
   const onSubmit = async (data) => {
     setLoading(true)
     try {
-      await authAPI.register(data)
+      // Clean up the data before sending
+      const cleanedData = {
+        ...data,
+        email: data.email?.trim().toLowerCase(),
+        name: data.name?.trim(),
+        phone: data.phone?.trim() || null // Set to null if empty
+      }
+      // Remove confirmPassword and terms from the data sent to API
+      delete cleanedData.confirmPassword
+      delete cleanedData.terms
+      
+      await authAPI.register(cleanedData)
       toast.success('Registration successful! Please verify your email.')
-      navigate('/verify-email', { state: { email: data.email } })
+      navigate('/verify-email', { state: { email: cleanedData.email } })
     } catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed')
     } finally {
@@ -106,7 +117,8 @@ function Register() {
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
                       message: 'Invalid email address'
-                    }
+                    },
+                    setValueAs: v => v?.trim().toLowerCase() || ''
                   })}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
