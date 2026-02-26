@@ -1,6 +1,5 @@
 import User from '../models/User.js';
 import { sendEmail } from '../utils/email.js';
-import { sendSMS } from '../utils/sms.js';
 import passport from 'passport';
 import { notifyNewUserRegistration } from '../utils/notifications.js';
 import { cloudinary } from '../middleware/uploadMiddleware.js';
@@ -59,7 +58,6 @@ export const register = async (req, res, next) => {
     await user.save();
 
     let emailSent = false;
-    let smsSent = false;
 
     // Send verification email (don't fail registration if email fails)
     if (email) {
@@ -72,16 +70,6 @@ export const register = async (req, res, next) => {
         });
       } catch (emailError) {
         console.error('Email sending failed:', emailError.message);
-      }
-    }
-
-    // Send verification SMS (don't fail registration if SMS fails)
-    if (phone) {
-      try {
-        await sendSMS(phone, `Your MeroGhar verification code is: ${verificationToken}`);
-        smsSent = true;
-      } catch (smsError) {
-        console.error('SMS sending failed:', smsError.message);
       }
     }
 
@@ -99,8 +87,8 @@ export const register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      message: emailSent || smsSent 
-        ? 'Registration successful. Please verify your email/phone.'
+      message: emailSent 
+        ? 'Registration successful. Please verify your email.'
         : 'Registration successful. Please request a new verification code.',
       data: {
         id: user._id,
@@ -108,7 +96,7 @@ export const register = async (req, res, next) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        verificationSent: emailSent || smsSent
+        verificationSent: emailSent
       }
     });
   } catch (error) {
@@ -205,56 +193,19 @@ export const verifyEmail = async (req, res, next) => {
   }
 };
 
-// @desc    Verify phone
-// @route   POST /api/auth/verify-phone
-// @access  Public
-export const verifyPhone = async (req, res, next) => {
-  try {
-    const { phone, token } = req.body;
-
-    const user = await User.findOne({
-      phone,
-      verificationToken: token,
-      verificationTokenExpire: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      res.status(400);
-      throw new Error('Invalid or expired verification token');
-    }
-
-    user.phoneVerified = true;
-    user.isVerified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpire = undefined;
-    await user.save();
-
-    const authToken = user.generateToken();
-
-    res.json({
-      success: true,
-      message: 'Phone verified successfully',
-      data: {
-        id: user._id,
-        name: user.name,
-        phone: user.phone,
-        role: user.role,
-        token: authToken
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 // @desc    Resend verification
 // @route   POST /api/auth/resend-verification
 // @access  Public
 export const resendVerification = async (req, res, next) => {
   try {
-    const { email, phone } = req.body;
+    const normalizedEmail = req.body.email?.trim().toLowerCase();
 
-    const user = await User.findOne({ $or: [{ email }, { phone }] });
+    if (!normalizedEmail) {
+      res.status(400);
+      throw new Error('Email is required');
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       res.status(404);
@@ -269,17 +220,13 @@ export const resendVerification = async (req, res, next) => {
     const verificationToken = user.generateVerificationToken();
     await user.save();
 
-    if (email) {
+    if (normalizedEmail) {
       await sendEmail({
-        to: email,
+        to: normalizedEmail,
         subject: 'Verify Your Email - MeroGhar',
         text: `Your verification code is: ${verificationToken}`,
         html: `<p>Your verification code is: <strong>${verificationToken}</strong></p>`
       });
-    }
-
-    if (phone) {
-      await sendSMS(phone, `Your MeroGhar verification code is: ${verificationToken}`);
     }
 
     res.json({

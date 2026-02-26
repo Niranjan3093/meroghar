@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { authAPI } from '../../utils/api'
 import UserAvatar from '../../components/UserAvatar'
-import { FiUser, FiMail, FiPhone, FiLock, FiCamera, FiMapPin, FiCalendar, FiBell, FiShield, FiCreditCard, FiCheckCircle, FiAlertCircle, FiEdit, FiSave, FiX } from 'react-icons/fi'
+import { FiUser, FiCamera, FiBell, FiShield, FiCreditCard, FiCheckCircle, FiAlertCircle, FiEdit, FiSave, FiX } from 'react-icons/fi'
 
 function Profile() {
   const { user, updateUser } = useAuthStore()
@@ -44,7 +44,6 @@ function Profile() {
   })
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
-    smsNotifications: true,
     paymentReminders: true,
     maintenanceUpdates: true,
     leaseReminders: true,
@@ -314,12 +313,7 @@ function Profile() {
                         {profileErrors.phone && <p className="text-red-500 text-sm mt-1">{profileErrors.phone}</p>}
                       </>
                     ) : (
-                      <div className="flex items-center">
-                        <p className="text-gray-900 py-2">{profileData.phone || '-'}</p>
-                        {user?.isPhoneVerified && (
-                          <FiCheckCircle className="ml-2 text-green-500" />
-                        )}
-                      </div>
+                      <p className="text-gray-900 py-2">{profileData.phone || '-'}</p>
                     )}
                   </div>
                   <div>
@@ -466,19 +460,6 @@ function Profile() {
               </div>
 
               <div className="bg-white rounded-xl border border-gray-100 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">Two-Factor Authentication</h2>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">SMS Authentication</p>
-                    <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
-                  </div>
-                  <button className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
-                    Enable
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-100 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">Active Sessions</h2>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-100">
@@ -505,7 +486,6 @@ function Profile() {
               <div className="space-y-6">
                 {[
                   { key: 'emailNotifications', label: 'Email Notifications', desc: 'Receive notifications via email' },
-                  { key: 'smsNotifications', label: 'SMS Notifications', desc: 'Receive notifications via SMS' },
                   { key: 'paymentReminders', label: 'Payment Reminders', desc: 'Get reminded about upcoming payments' },
                   { key: 'maintenanceUpdates', label: 'Maintenance Updates', desc: 'Updates on maintenance requests' },
                   { key: 'leaseReminders', label: 'Lease Reminders', desc: 'Reminders about lease expiry' },
