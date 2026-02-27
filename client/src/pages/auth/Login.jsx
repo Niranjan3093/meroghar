@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { authAPI } from '../../utils/api'
@@ -10,8 +10,17 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { setAuth } = useAuthStore()
   const { register, handleSubmit, formState: { errors } } = useForm()
+
+  // Handle OAuth error from redirect
+  useEffect(() => {
+    const error = searchParams.get('error')
+    if (error) {
+      toast.error(decodeURIComponent(error) || 'Authentication failed. Please try again.')
+    }
+  }, [searchParams])
 
   const onSubmit = async (data) => {
     setLoading(true)

@@ -67,6 +67,8 @@ const configurePassport = () => {
               emailVerified: true,
             });
 
+            // Mark as new user for role selection
+            user._isNewOAuthUser = true;
             return done(null, user);
           } catch (error) {
             return done(error, null);
@@ -88,9 +90,11 @@ const configurePassport = () => {
           clientSecret: process.env.FACEBOOK_APP_SECRET,
           callbackURL: '/api/auth/facebook/callback',
           profileFields: ['id', 'displayName', 'photos', 'email'],
+          enableProof: true,
         },
         async (accessToken, refreshToken, profile, done) => {
           try {
+            console.log('Facebook profile received:', JSON.stringify(profile, null, 2));
             const email = profile.emails?.[0]?.value;
 
             // 1. Check if user already authenticated with Facebook before
@@ -113,6 +117,12 @@ const configurePassport = () => {
             }
 
             // 3. Brand-new user — create account
+            // If no email from Facebook, we cannot create account (email is required)
+            if (!email) {
+              console.error('Facebook login failed: No email provided by Facebook');
+              return done(null, false, { message: 'No email associated with this Facebook account. Please use a Facebook account with a verified email or register manually.' });
+            }
+
             user = await User.create({
               facebookId: profile.id,
               name: profile.displayName,
@@ -122,8 +132,11 @@ const configurePassport = () => {
               emailVerified: true,
             });
 
+            // Mark as new user for role selection
+            user._isNewOAuthUser = true;
             return done(null, user);
           } catch (error) {
+            console.error('Facebook OAuth error:', error);
             return done(error, null);
           }
         }

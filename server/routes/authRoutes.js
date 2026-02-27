@@ -11,6 +11,7 @@ import {
   getMe,
   updateProfile,
   updatePassword,
+  selectRole,
   googleAuth,
   googleAuthCallback,
   facebookAuth,
@@ -48,6 +49,7 @@ router.get('/facebook/callback', facebookAuthCallback);
 router.get('/me', protect, getMe);
 router.put('/update-profile', protect, updateProfileRules, updateProfile);
 router.put('/update-password', protect, updatePasswordRules, updatePassword);
+router.put('/select-role', protect, selectRole);
 router.post('/logout', protect, logout);
 
 export default router;

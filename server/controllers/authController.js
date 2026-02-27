@@ -348,6 +348,46 @@ export const getMe = async (req, res, next) => {
   }
 };
 
+// @desc    Select role for new OAuth users
+// @route   PUT /api/auth/select-role
+// @access  Private
+export const selectRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+
+    // Only allow tenant or host roles
+    if (!['tenant', 'host'].includes(role)) {
+      res.status(400);
+      throw new Error('Invalid role. Please select tenant or host.');
+    }
+
+    const user = await User.findById(req.user.id);
+
+    // Only allow role selection if user still has default tenant role
+    // This prevents users from switching roles arbitrarily
+    if (user.role !== 'tenant') {
+      res.status(400);
+      throw new Error('Role has already been selected.');
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update user profile
 // @route   PUT /api/auth/update-profile
 // @access  Private
@@ -430,7 +470,8 @@ export const googleAuthCallback = (req, res, next) => {
     }
     
     const token = user.generateToken();
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth-callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
+    const isNewUser = user._isNewOAuthUser === true;
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth-callback?token=${token}&isNewUser=${isNewUser}&user=${encodeURIComponent(JSON.stringify({
       id: user._id,
       name: user.name,
       email: user.email,
@@ -445,12 +486,16 @@ export const facebookAuth = passport.authenticate('facebook');
 
 export const facebookAuthCallback = (req, res, next) => {
   passport.authenticate('facebook', { session: false }, (err, user, info) => {
+    console.error('Facebook OAuth Error:', err);
+    console.error('Facebook OAuth Info:', info);
     if (err || !user) {
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`);
+      const errorMsg = err?.message || info?.message || 'auth_failed';
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent(errorMsg)}`);
     }
     
     const token = user.generateToken();
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth-callback?token=${token}&user=${encodeURIComponent(JSON.stringify({
+    const isNewUser = user._isNewOAuthUser === true;
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth-callback?token=${token}&isNewUser=${isNewUser}&user=${encodeURIComponent(JSON.stringify({
       id: user._id,
       name: user.name,
       email: user.email,

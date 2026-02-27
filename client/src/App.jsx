@@ -12,6 +12,7 @@ import Register from './pages/auth/Register'
 import AdminAuth from './pages/auth/AdminAuth'
 import VerifyEmail from './pages/auth/VerifyEmail'
 import OAuthCallback from './pages/auth/OAuthCallback'
+import SelectRole from './pages/auth/SelectRole'
 import Properties from './pages/properties/Properties'
 import PropertyDetails from './pages/properties/PropertyDetails'
 
@@ -117,6 +118,11 @@ function App() {
         } />
         <Route path="verify-email" element={<VerifyEmail />} />
         <Route path="oauth-callback" element={<OAuthCallback />} />
+        <Route path="select-role" element={
+          <ProtectedRoute>
+            <SelectRole />
+          </ProtectedRoute>
+        } />
         <Route path="properties" element={<Properties />} />
         <Route path="properties/:id" element={<PropertyDetails />} />
       </Route>

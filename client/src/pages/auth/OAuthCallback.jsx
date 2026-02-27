@@ -11,10 +11,11 @@ function OAuthCallback() {
   useEffect(() => {
     const token = searchParams.get('token')
     const userParam = searchParams.get('user')
+    const isNewUser = searchParams.get('isNewUser') === 'true'
     const error = searchParams.get('error')
 
     if (error) {
-      toast.error('Authentication failed. Please try again.')
+      toast.error(decodeURIComponent(error) || 'Authentication failed. Please try again.')
       navigate('/login')
       return
     }
@@ -23,8 +24,16 @@ function OAuthCallback() {
       try {
         const user = JSON.parse(decodeURIComponent(userParam))
         setAuth(user, token)
-        toast.success('Login successful!')
-        navigate(`/dashboard/${user.role || 'tenant'}`)
+        
+        if (isNewUser) {
+          // New user - redirect to role selection
+          toast.info('Please select how you want to use MeroGhar')
+          navigate('/select-role')
+        } else {
+          // Existing user - redirect to dashboard
+          toast.success('Login successful!')
+          navigate(`/dashboard/${user.role || 'tenant'}`)
+        }
       } catch (err) {
         toast.error('Authentication failed. Please try again.')
         navigate('/login')
