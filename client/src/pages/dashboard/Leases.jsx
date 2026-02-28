@@ -332,6 +332,21 @@ function Leases() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8">
+      {/* Alert for pending leases awaiting signature */}
+      {stats.pending > 0 && (
+        <div className="mb-6 rounded-2xl border-l-4 border-amber-500 bg-amber-50 p-4 md:p-5">
+          <div className="flex items-start">
+            <FiClock className="mt-0.5 mr-3 text-amber-600 flex-shrink-0" size={20} />
+            <div>
+              <h3 className="font-semibold text-amber-900">Action Required: Sign Your Lease</h3>
+              <p className="mt-1 text-sm text-amber-800">
+                You have {stats.pending} lease{stats.pending > 1 ? 's' : ''} awaiting your signature. Please sign the contract below to activate the lease.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-5 md:p-6">
         <h1 className="text-2xl font-bold text-gray-900">{user?.role === 'host' ? 'Lease Management' : 'My Leases'}</h1>
         <p className="mt-1 text-sm text-gray-500">

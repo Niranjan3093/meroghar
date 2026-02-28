@@ -9,6 +9,7 @@ import {
   FiClock,
   FiDownload,
   FiExternalLink,
+  FiFileText,
   FiHome,
   FiMail,
   FiMapPin,
@@ -288,8 +289,11 @@ function LeaseDetails() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen w-screen items-center justify-center bg-gray-50">
-        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary-600"></div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading lease details...</p>
+        </div>
       </div>
     )
   }
@@ -301,262 +305,317 @@ function LeaseDetails() {
   const isDocuSignSignedFile = contractPreviewType.includes('application/pdf')
 
   return (
-    <div className="min-h-screen w-screen bg-gray-50 p-4 md:p-6 lg:p-8">
-      <div className="mb-5 flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Back Button */}
         <button
           onClick={() => navigate('/dashboard/leases')}
-          className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium text-sm mb-6"
         >
-          <FiArrowLeft className="mr-2" /> Back to Leases
+          <FiArrowLeft size={18} /> Back to Leases
         </button>
-      </div>
 
-      <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="flex min-w-0 gap-4">
-            <div className="h-24 w-32 overflow-hidden rounded-xl bg-gray-100">
-              {lease.property?.images?.[0]?.url || lease.property?.images?.[0] ? (
-                <img
-                  src={lease.property?.images?.[0]?.url || lease.property?.images?.[0]}
-                  alt={lease.property?.title}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <FiHome className="text-2xl text-gray-400" />
+        {/* Main Container */}
+        <div className="space-y-4">
+          {/* Header Card */}
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
+            <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+              <div className="flex gap-4">
+                <div className="w-28 h-28 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                  {lease.property?.images?.[0]?.url || lease.property?.images?.[0] ? (
+                    <img
+                      src={lease.property?.images?.[0]?.url || lease.property?.images?.[0]}
+                      alt={lease.property?.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <FiHome className="text-3xl text-gray-400" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-
-            <div className="min-w-0">
-              <h1 className="line-clamp-2 text-xl font-bold text-gray-900">{lease.property?.title || 'Lease Details'}</h1>
-              <p className="mt-1 flex items-center text-sm text-gray-500">
-                <FiMapPin className="mr-1.5" />
-                <span className="line-clamp-1">{lease.property?.address?.street}, {lease.property?.address?.city}</span>
-              </p>
-              <div className="mt-3">{statusBadge(lease.displayStatus || lease.status)}</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:min-w-[260px]">
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-xs text-gray-500">Monthly Rent</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900">NPR {(lease.monthlyRent || 0).toLocaleString()}</p>
-            </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-xs text-gray-500">Days Remaining</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900">{lease.daysRemaining}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <div className="xl:col-span-2 rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Lease Timeline</h2>
-          <div className="mb-4 h-2.5 w-full overflow-hidden rounded-full bg-gray-200">
-            <div className="h-full rounded-full bg-primary-600" style={{ width: `${leaseProgress}%` }}></div>
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-xs text-gray-500">Start Date</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900">{new Date(lease.startDate).toLocaleDateString()}</p>
-            </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-xs text-gray-500">End Date</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900">{new Date(lease.endDate).toLocaleDateString()}</p>
-            </div>
-            <div className="rounded-lg bg-gray-50 p-3">
-              <p className="text-xs text-gray-500">Duration</p>
-              <p className="mt-1 text-sm font-semibold text-gray-900">{Math.ceil((new Date(lease.endDate) - new Date(lease.startDate)) / (1000 * 60 * 60 * 24 * 30))} months</p>
-            </div>
-          </div>
-
-          {lease.displayStatus === 'expiring' && (
-            <div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-3 text-sm text-orange-800">
-              Lease is expiring soon. Consider requesting renewal.
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-5">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Actions</h2>
-            <div className="space-y-2.5">
-              {canSign && (
-                <button
-                  onClick={() => setShowSignModal(true)}
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-primary-600 px-3 py-2.5 text-sm font-medium text-white hover:bg-primary-700"
-                >
-                  <FiPenTool className="mr-1.5" /> Sign Lease
-                </button>
-              )}
-
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="inline-flex w-full items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-              >
-                <FiDownload className="mr-1.5" /> {downloading ? 'Downloading...' : 'Download Contract'}
-              </button>
-
-              <button
-                onClick={syncDocuSignStatus}
-                disabled={syncing}
-                className="inline-flex w-full items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-              >
-                <FiRefreshCw className="mr-1.5" /> {syncing ? 'Syncing...' : 'Refresh Signature Status'}
-              </button>
-
-              {canRenew && (
-                <button
-                  onClick={requestRenewal}
-                  className="inline-flex w-full items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <FiRefreshCw className="mr-1.5" /> Request Renewal
-                </button>
-              )}
-
-              {lease.renewalRequested && (
-                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
-                  Renewal request already submitted.
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{lease.property?.title}</h1>
+                  <p className="text-gray-600 flex items-center gap-1 mb-3">
+                    <FiMapPin size={16} />
+                    {lease.property?.address?.street}, {lease.property?.address?.city}
+                  </p>
+                  <div>{statusBadge(lease.displayStatus || lease.status)}</div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Signature Status</h2>
-            <div className="space-y-3 text-sm">
-              <div className={`rounded-lg border p-3 ${lease.hostSignature?.signed ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                <p className="text-xs text-gray-500">Host Signature</p>
-                <p className="mt-1 font-semibold text-gray-900">{lease.host?.name}</p>
-                <p className="mt-1 text-xs text-gray-600">{lease.hostSignature?.signed ? `Signed on ${new Date(lease.hostSignature.signedAt).toLocaleDateString()}` : 'Awaiting signature'}</p>
               </div>
-              <div className={`rounded-lg border p-3 ${lease.tenantSignature?.signed ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                <p className="text-xs text-gray-500">Tenant Signature</p>
-                <p className="mt-1 font-semibold text-gray-900">{lease.tenant?.name}</p>
-                <p className="mt-1 text-xs text-gray-600">{lease.tenantSignature?.signed ? `Signed on ${new Date(lease.tenantSignature.signedAt).toLocaleDateString()}` : 'Awaiting signature'}</p>
+              
+              <div className="grid grid-cols-2 gap-3 lg:min-w-fit">
+                <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-4 border border-primary-200">
+                  <p className="text-xs font-semibold text-primary-700 mb-1">Monthly Rent</p>
+                  <p className="text-2xl font-bold text-primary-900">NPR {(lease.monthlyRent || 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
+                  <p className="text-xs font-semibold text-orange-700 mb-1">Days Left</p>
+                  <p className="text-2xl font-bold text-orange-900">{lease.daysRemaining}</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">{user?.role === 'host' ? 'Tenant Contact' : 'Host Contact'}</h2>
-            <div className="mb-4 flex items-center gap-3">
-              <UserAvatar name={user?.role === 'host' ? lease.tenant?.name : lease.host?.name} avatar={user?.role === 'host' ? lease.tenant?.avatar : lease.host?.avatar} size="md" />
-              <div className="min-w-0">
-                <p className="line-clamp-1 text-sm font-semibold text-gray-900">{user?.role === 'host' ? lease.tenant?.name : lease.host?.name}</p>
-                <p className="line-clamp-1 text-xs text-gray-500">{otherParty?.email || 'No email available'}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Left Column - Main Content */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Timeline */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">📅 Lease Timeline</h3>
+                <div className="mb-4 h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full" style={{ width: `${leaseProgress}%` }}></div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center">
+                    <p className="text-xs text-gray-600 mb-1">Start Date</p>
+                    <p className="font-semibold text-gray-900">{new Date(lease.startDate).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-gray-600 mb-1">End Date</p>
+                    <p className="font-semibold text-gray-900">{new Date(lease.endDate).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-gray-600 mb-1">Duration</p>
+                    <p className="font-semibold text-gray-900">{Math.ceil((new Date(lease.endDate) - new Date(lease.startDate)) / (1000 * 60 * 60 * 24 * 30))} months</p>
+                  </div>
+                </div>
+                {lease.displayStatus === 'expiring' && (
+                  <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+                    ⚠️ Lease expiring soon! Consider requesting renewal.
+                  </div>
+                )}
+              </div>
+
+              {/* Signatures */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">✍️ Signature Status</h3>
+                <div className="space-y-3">
+                  <div className={`rounded-lg border-2 p-4 transition ${lease.hostSignature?.signed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-gray-600">Host</p>
+                        <p className="font-semibold text-gray-900 mt-1">{lease.host?.name}</p>
+                      </div>
+                      {lease.hostSignature?.signed && (
+                        <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                          <FiCheckCircle size={14} /> Signed
+                        </span>
+                      )}
+                    </div>
+                    {lease.hostSignature?.signed && (
+                      <p className="text-xs text-gray-600 mt-2">Signed on {new Date(lease.hostSignature.signedAt).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                  
+                  <div className={`rounded-lg border-2 p-4 transition ${lease.tenantSignature?.signed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-medium text-gray-600">Tenant</p>
+                        <p className="font-semibold text-gray-900 mt-1">{lease.tenant?.name}</p>
+                      </div>
+                      {lease.tenantSignature?.signed && (
+                        <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold">
+                          <FiCheckCircle size={14} /> Signed
+                        </span>
+                      )}
+                    </div>
+                    {lease.tenantSignature?.signed && (
+                      <p className="text-xs text-gray-600 mt-2">Signed on {new Date(lease.tenantSignature.signedAt).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Contract Preview - Direct Button */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-gray-900">📄 Lease Contract</h3>
+                  <p className="text-xs text-gray-600">
+                    {isDocuSignSignedFile ? 'Signed' : 'Ready to review'}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowContractFullscreen(true)}
+                    disabled={!contractPreviewUrl}
+                    className="flex-1 px-4 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <FiExternalLink size={16} /> Preview Contract
+                  </button>
+                  <button
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="px-4 py-3 border-2 border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    <FiDownload size={16} /> Download
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              {otherParty?.email && (
-                <a href={`mailto:${otherParty.email}`} className="flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                  <FiMail className="mr-2" /> {otherParty.email}
-                </a>
-              )}
-              {otherParty?.phone && (
-                <a href={`tel:${otherParty.phone}`} className="flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                  <FiPhone className="mr-2" /> {otherParty.phone}
-                </a>
-              )}
-              <button
-                onClick={() => navigate('/dashboard/messages')}
-                className="inline-flex w-full items-center justify-center rounded-lg border border-gray-200 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <FiMessageSquare className="mr-1.5" /> Open Messages
-              </button>
+            {/* Right Column - Sidebar */}
+            <div className="space-y-4">
+              {/* Quick Actions */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">⚡ Actions</h3>
+                <div className="space-y-2.5">
+                  {canSign && (
+                    <button
+                      onClick={() => setShowSignModal(true)}
+                      className="w-full px-4 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition flex items-center justify-center gap-2"
+                    >
+                      <FiPenTool size={16} /> Sign Lease
+                    </button>
+                  )}
+                  <button
+                    onClick={syncDocuSignStatus}
+                    disabled={syncing}
+                    className="w-full px-4 py-2.5 border-2 border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    <FiRefreshCw className={syncing ? 'animate-spin' : ''} size={16} /> Refresh
+                  </button>
+                  {canRenew && (
+                    <button
+                      onClick={requestRenewal}
+                      className="w-full px-4 py-2.5 border-2 border-blue-200 text-blue-700 font-medium rounded-lg hover:bg-blue-50 transition flex items-center justify-center gap-2"
+                    >
+                      <FiRefreshCw size={16} /> Request Renewal
+                    </button>
+                  )}
+                  {lease.renewalRequested && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 text-center font-medium">
+                      Renewal requested
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Contact Card */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">👤 {user?.role === 'host' ? 'Tenant' : 'Host'}</h3>
+                <div className="mb-4 flex items-center gap-3">
+                  <UserAvatar 
+                    name={user?.role === 'host' ? lease.tenant?.name : lease.host?.name} 
+                    avatar={user?.role === 'host' ? lease.tenant?.avatar : lease.host?.avatar} 
+                    size="md"
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 text-sm">{user?.role === 'host' ? lease.tenant?.name : lease.host?.name}</p>
+                    <p className="text-xs text-gray-600">{otherParty?.email}</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {otherParty?.email && (
+                    <a 
+                      href={`mailto:${otherParty.email}`} 
+                      className="flex items-center gap-2 px-3 py-2.5 border-2 border-primary-100 text-primary-600 rounded-lg hover:bg-primary-50 transition text-sm font-medium"
+                    >
+                      <FiMail size={16} /> Email
+                    </a>
+                  )}
+                  {otherParty?.phone && (
+                    <a 
+                      href={`tel:${otherParty.phone}`} 
+                      className="flex items-center gap-2 px-3 py-2.5 border-2 border-primary-100 text-primary-600 rounded-lg hover:bg-primary-50 transition text-sm font-medium"
+                    >
+                      <FiPhone size={16} /> Call
+                    </a>
+                  )}
+                  <button
+                    onClick={() => navigate('/dashboard/messages')}
+                    className="w-full px-3 py-2.5 border-2 border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium flex items-center justify-center gap-2 text-sm"
+                  >
+                    <FiMessageSquare size={16} /> Message
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
-        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Lease Contract</h2>
-            <p className="text-xs text-gray-500">
-              {isDocuSignSignedFile
-                ? 'Showing signed DocuSign document with signatures.'
-                : 'Showing current lease contract preview.'}
-            </p>
-          </div>
-          <button
-            onClick={() => setShowContractFullscreen(true)}
-            disabled={!contractPreviewUrl}
-            className="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-60"
-          >
-            <FiExternalLink className="mr-1.5" /> Full Screen Contract
-          </button>
-        </div>
-
-        <div className="h-[78vh] w-full overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
-          {contractLoading ? (
-            <div className="flex h-full items-center justify-center text-gray-500">Loading contract...</div>
-          ) : contractPreviewUrl ? (
-            <iframe title="Lease Contract" src={contractPreviewUrl} className="h-full w-full" />
-          ) : (
-            <div className="flex h-full items-center justify-center text-gray-500">Contract preview is unavailable.</div>
-          )}
-        </div>
-      </div>
-
+      {/* Sign Modal */}
       {showSignModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-5">
-            <div className="mb-4 flex items-start gap-2">
-              <FiAlertCircle className="mt-0.5 text-blue-600" />
-              <div>
-                <h3 className="text-base font-semibold text-gray-900">Sign lease agreement</h3>
-                <p className="mt-1 text-sm text-gray-600">Proceed with secure signing. If DocuSign is unavailable, local e-sign will be used.</p>
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <FiAlertCircle className="text-blue-600" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Sign Lease Agreement</h3>
+                  <p className="text-sm text-gray-600 mt-1">Proceed with secure electronic signing.</p>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div className="p-6">
+              <p className="text-sm text-gray-700 mb-4">
+                If DocuSign is unavailable, local e-signature will be used. You can sign with your name.
+              </p>
+            </div>
+
+            <div className="flex gap-2 p-6 border-t border-gray-200 bg-gray-50">
               <button
                 onClick={() => setShowSignModal(false)}
-                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={initiateSigning}
                 disabled={signing}
-                className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+                className="flex-1 px-4 py-2.5 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition disabled:opacity-60 flex items-center justify-center gap-2"
               >
-                {signing ? 'Processing...' : 'Continue'}
+                {signing ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <FiPenTool size={16} /> Continue
+                  </>
+                )}
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Full Screen Contract Modal */}
       {showContractFullscreen && (
-        <div className="fixed inset-0 z-[60] bg-black/70">
-          <div className="flex h-full w-full flex-col bg-white">
-            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Lease Contract - Full Screen</h3>
-                <p className="text-xs text-gray-500">
-                  {isDocuSignSignedFile
-                    ? 'Signed DocuSign contract with signatures.'
-                    : 'Contract preview'}
+                <h3 className="font-semibold text-gray-900 text-lg">Lease Contract</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {isDocuSignSignedFile ? 'Signed contract with all signatures' : 'Contract preview'}
                 </p>
               </div>
               <button
                 onClick={() => setShowContractFullscreen(false)}
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
               >
-                Close
+                <FiX size={24} className="text-gray-600" />
               </button>
             </div>
-            <div className="flex-1 overflow-auto bg-gray-100 p-2">
+            
+            <div className="flex-1 overflow-auto bg-gray-100 p-4">
               {contractPreviewUrl ? (
-                <iframe title="Full Screen Lease Contract" src={contractPreviewUrl} className="h-full w-full rounded border border-gray-300 bg-white" />
+                <div className="bg-white rounded-lg shadow-sm overflow-hidden h-full">
+                  <iframe title="Full Screen Lease Contract" src={contractPreviewUrl} className="h-full w-full border-0" />
+                </div>
               ) : (
-                <div className="flex h-full items-center justify-center text-gray-500">Contract preview is unavailable.</div>
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-center text-gray-600">
+                    <FiFileText size={48} className="mx-auto mb-2 opacity-30" />
+                    <p>Contract preview unavailable</p>
+                  </div>
+                </div>
               )}
             </div>
           </div>

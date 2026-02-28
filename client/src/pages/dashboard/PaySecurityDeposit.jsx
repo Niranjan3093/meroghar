@@ -186,8 +186,8 @@ function PaySecurityDeposit() {
         toast.success('Payment successful! Your lease has been created. You can now sign the contract.')
         
         setTimeout(() => {
-          console.log('Redirecting to lease requests page...');
-          navigate('/dashboard/lease-requests', { replace: true })
+          console.log('Redirecting to leases page for contract signing...');
+          navigate('/dashboard/leases', { replace: true })
         }, 3000)
       } else {
         throw new Error(verifyResponse?.data?.message || 'Payment verification failed after retries. Please try again.')
@@ -233,7 +233,7 @@ function PaySecurityDeposit() {
         toast.success('Payment successful! Your lease has been created. You can now sign the contract.')
         
         setTimeout(() => {
-          navigate('/dashboard/lease-requests', { replace: true })
+          navigate('/dashboard/leases', { replace: true })
         }, 3000)
       } else {
         throw new Error(verifyResponse.data.message || 'Payment verification failed')
@@ -704,8 +704,9 @@ function PaySecurityDeposit() {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FiCheck className="w-8 h-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Successful!</h3>
-                <p className="text-gray-600 mb-4">Your lease has been created. Redirecting to leases page...</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Successful! 🎉</h3>
+                <p className="text-gray-600 mb-2">Your security deposit has been received and your lease has been created.</p>
+                <p className="text-sm text-gray-500 mb-4">Next: You'll be redirected to your leases page to sign the contract.</p>
                 {completedPaymentId && (
                   <button
                     onClick={async () => {

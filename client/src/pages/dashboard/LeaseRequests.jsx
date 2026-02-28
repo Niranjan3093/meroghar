@@ -129,13 +129,10 @@ function LeaseRequests() {
     )
   }
 
-  // Hide completed requests once the lease is active OR both parties have signed
+  // Hide all completed requests - users should view/sign leases in the Leases page
   const pendingRequests = leaseRequests.filter(req => {
-    if (req.status === 'completed') {
-      const leaseActive = req.lease?.status === 'active'
-      const bothSigned = req.lease?.hostSignature?.signed && req.lease?.tenantSignature?.signed
-      if (leaseActive || bothSigned) return false
-    }
+    // Filter out completed requests as they're no longer part of the request workflow
+    if (req.status === 'completed') return false
     return true
   })
 
@@ -197,35 +194,6 @@ function LeaseRequests() {
       </div>
 
       {/* Requests List */}
-      {/* Alert for completed requests needing signatures (only when lease is NOT yet active) */}
-      {pendingRequests.some(r =>
-        r.status === 'completed' &&
-        r.lease &&
-        r.lease.status !== 'active' &&
-        (!r.lease?.hostSignature?.signed || !r.lease?.tenantSignature?.signed)
-      ) && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 p-4 rounded-lg mb-6 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div className="flex items-start flex-1">
-              <FiCheck className="text-green-600 text-2xl mr-3 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <h3 className="font-semibold text-green-900 text-base">Payment Completed! 🎉</h3>
-                <p className="text-sm text-green-800 mt-1">
-                  Your security deposit has been processed and your lease has been created. Please sign the contract below to activate your lease.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleManualRefresh}
-              disabled={refreshing}
-              className="ml-2 px-3 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition disabled:opacity-60 flex-shrink-0"
-            >
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </button>
-          </div>
-        </div>
-      )}
-      
       {filteredRequests.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
           <FiFileText className="mx-auto text-5xl text-gray-300 mb-4" />
@@ -249,161 +217,12 @@ function LeaseRequests() {
       ) : (
         <div className="space-y-6">
           {filteredRequests.map((request) => {
-            // Never render a completed request if both parties have signed or lease is active
-            if (request.status === 'completed') {
-              const leaseActive = request.lease?.status === 'active'
-              const bothSigned = request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed
-              if (leaseActive || bothSigned) return null
-            }
-
             return (
             <div 
               key={request._id}
-              className={`rounded-xl border ${
-                request.status === 'completed' 
-                  ? 'bg-gradient-to-br from-green-50 to-white border-green-200 shadow-lg p-8' 
-                  : 'bg-white border-gray-100 p-6 hover:shadow-md transition'
-              }`}
+              className="rounded-xl border bg-white border-gray-100 p-6 hover:shadow-md transition"
             >
-              {request.status === 'completed' ? (
-                // Completed Lease - Professional Large Layout
-                <div className="space-y-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <FiCheckCircle className="text-green-600 text-2xl" />
-                        <h3 className="text-2xl font-bold text-gray-900">
-                          {request.property?.title || 'Property'}
-                        </h3>
-                      </div>
-                      <p className="text-lg text-gray-600">
-                        {request.lease?.status === 'active' ? 'Active Lease Agreement' : 'Lease Awaiting Signatures'}
-                      </p>
-                    </div>
-                    <div>
-                      {getStatusBadge(request.status)}
-                    </div>
-                  </div>
-
-                  {/* Property Image */}
-                  {request.property?.images?.[0] && (
-                    <div className="overflow-hidden rounded-xl">
-                      <img
-                        src={request.property.images[0].url}
-                        alt={request.property.title}
-                        className="w-full h-48 object-cover"
-                      />
-                    </div>
-                  )}
-
-                  {/* Lease Details Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
-                      <p className="text-sm text-gray-500 mb-1">Tenant</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {request.tenant?.name || 'N/A'}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
-                      <p className="text-sm text-gray-500 mb-1">Host</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {request.host?.name || 'N/A'}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
-                      <p className="text-sm text-gray-500 mb-1">Move-in Date</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {new Date(request.proposedMoveIn).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
-                      <p className="text-sm text-gray-500 mb-1">Lease Duration</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {formatDuration(request.proposedDuration)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Financial Summary */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg p-5 border border-gray-200">
-                      <p className="text-sm text-gray-500 mb-2">Monthly Rent</p>
-                      <p className="text-2xl font-bold text-primary-600">
-                        NPR {request.lease?.monthlyRent?.toLocaleString() || 'N/A'}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-5 border border-gray-200">
-                      <p className="text-sm text-gray-500 mb-2">Security Deposit</p>
-                      <p className="text-2xl font-bold text-orange-600">
-                        NPR {request.securityDeposit?.toLocaleString() || 'N/A'}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-5 border border-gray-200">
-                      <p className="text-sm text-gray-500 mb-2">Move-in Cost</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        NPR {((request.lease?.monthlyRent || 0) + (request.securityDeposit || 0)).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Contract Status */}
-                  <div className={`rounded-lg p-5 border ${
-                    request.lease?.status === 'active' || (request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed)
-                      ? 'bg-green-50 border-green-200'
-                      : 'bg-blue-50 border-blue-200'
-                  }`}>
-                    <p className="text-sm font-semibold text-gray-700 mb-3">Contract Status</p>
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${request.lease?.hostSignature?.signed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                        <span className="text-sm text-gray-700">
-                          Host {request.lease?.hostSignature?.signed ? '✓ Signed' : 'Pending'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${request.lease?.tenantSignature?.signed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                        <span className="text-sm text-gray-700">
-                          Tenant {request.lease?.tenantSignature?.signed ? '✓ Signed' : 'Pending'}
-                        </span>
-                      </div>
-                    </div>
-                    {request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed && (
-                      <p className="text-xs text-green-700 mt-3 font-medium">✓ All parties have signed. Lease is active!</p>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-2">
-                    {/* Show View Lease/Download when lease is active OR both parties have signed */}
-                    {(request.lease?.status === 'active' || (request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed)) ? (
-                      <>
-                        <button
-                          onClick={() => navigate(`/dashboard/leases`)}
-                          className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center justify-center"
-                        >
-                          <FiCheckCircle className="mr-2" /> View Lease
-                        </button>
-                        <button
-                          onClick={() => navigate(`/dashboard/leases`)}
-                          className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center justify-center"
-                        >
-                          <FiDownload className="mr-2" /> Download
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => navigate(`/dashboard/leases`)}
-                        className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-semibold flex items-center justify-center"
-                      >
-                        <FiFileText className="mr-2" /> Sign Contract Now
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                // Non-Completed Lease - Compact Layout
-                <>
-                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                 {/* Property Info */}
                 <div className="flex items-start space-x-4 flex-1">
                   {request.property?.images?.[0] && (
@@ -521,12 +340,10 @@ function LeaseRequests() {
               )}
 
               {/* Timestamp */}
-              <p className={`${request.status === 'completed' ? 'text-gray-500 text-sm mt-4' : 'text-xs text-gray-400 mt-4'}`}>
+              <p className="text-xs text-gray-400 mt-4">
                 Submitted: {new Date(request.createdAt).toLocaleString()}
               </p>
-              </>
-              )}
-            </div>
+              </div>
             )
           })}
         </div>
