@@ -5,7 +5,7 @@
 
 const KHALTI_CONFIG = {
   publicKey: import.meta.env.VITE_KHALTI_PUBLIC_KEY,
-  apiUrl: import.meta.env.VITE_API_URL
+  apiUrl: import.meta.env.VITE_API_URL || '/api'
 };
 
 /**

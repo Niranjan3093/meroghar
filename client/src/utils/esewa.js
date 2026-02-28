@@ -7,7 +7,7 @@ const ESEWA_CONFIG = {
   merchantId: import.meta.env.VITE_ESEWA_MERCHANT_ID,
   productCode: import.meta.env.VITE_ESEWA_PRODUCT_CODE,
   formUrl: import.meta.env.VITE_ESEWA_FORM_URL,
-  apiUrl: import.meta.env.VITE_API_URL
+  apiUrl: import.meta.env.VITE_API_URL || '/api'
 };
 
 /**

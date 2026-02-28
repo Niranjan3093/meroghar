@@ -44,7 +44,12 @@ function DashboardNavbar({ onMenuClick }) {
   // Initialize socket connection
   useEffect(() => {
     if (user?._id || user?.id) {
-      const newSocket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
+      const socketBaseUrl = import.meta.env.VITE_SOCKET_URL ||
+        (import.meta.env.VITE_API_URL
+          ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
+          : 'http://localhost:5000')
+
+      const newSocket = io(socketBaseUrl, {
         withCredentials: true
       })
 
