@@ -48,7 +48,19 @@ function Login({ adminOnly = false }) {
       toast.success('Login successful!')
       navigate(adminLoginMode ? '/dashboard/admin' : `/dashboard/${user.role}`)
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed')
+      const responseData = error.response?.data
+      const errorCode = responseData?.code || error.response?.data?.error?.code
+
+      if (errorCode === 'EMAIL_NOT_VERIFIED' || responseData?.message === 'Please verify your account first') {
+        const pendingEmail = data.email.trim().toLowerCase()
+        sessionStorage.setItem('pendingVerificationEmail', pendingEmail)
+        sessionStorage.setItem('pendingVerificationSource', 'login')
+        toast.info('We sent a new OTP to your email. Verify it to continue.')
+        navigate('/verify-email', { state: { email: pendingEmail, source: 'login' } })
+        return
+      }
+
+      toast.error(responseData?.message || 'Login failed')
     } finally {
       setLoading(false)
     }

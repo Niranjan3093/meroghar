@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { authAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
@@ -10,7 +10,14 @@ function VerifyEmail() {
   const location = useLocation()
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
-  const email = location.state?.email
+  const [searchParams] = useSearchParams()
+  const email = location.state?.email || searchParams.get('email') || sessionStorage.getItem('pendingVerificationEmail')
+
+  useEffect(() => {
+    if (!email) {
+      navigate('/login')
+    }
+  }, [email, navigate])
 
   const handleChange = (index, value) => {
     // Only allow digits
@@ -41,6 +48,8 @@ function VerifyEmail() {
       })
       const { token, ...user } = response.data.data
       setAuth(user, token)
+      sessionStorage.removeItem('pendingVerificationEmail')
+      sessionStorage.removeItem('pendingVerificationSource')
       toast.success('Email verified successfully!')
       navigate(`/dashboard/${user.role}`)
     } catch (error) {
@@ -53,6 +62,7 @@ function VerifyEmail() {
   const handleResend = async () => {
     try {
       await authAPI.resendVerification({ email })
+      sessionStorage.setItem('pendingVerificationEmail', email)
       toast.success('Verification code sent!')
     } catch (error) {
       toast.error('Failed to resend code')

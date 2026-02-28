@@ -30,6 +30,9 @@ export const errorHandler = (err, req, res, next) => {
   res.status(statusCode).json({
     success: false,
     message,
+    code: err.code,
+    email: err.email,
+    verificationSent: err.verificationSent,
     stack: process.env.NODE_ENV === 'production' ? null : err.stack
   });
 };

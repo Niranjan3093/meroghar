@@ -116,6 +116,7 @@ export const login = async (req, res, next) => {
     const email = req.body.email?.trim().toLowerCase();
     const { password } = req.body;
     const settings = await getAppSettings();
+    const platformName = settings.platformName || 'MeroGhar';
     const maxLoginAttempts = settings.maxLoginAttempts || 5;
     const lockDurationMs = 30 * 60 * 1000;
 
@@ -178,8 +179,26 @@ export const login = async (req, res, next) => {
     }
 
     if (settings.requireEmailVerification && !user.isVerified) {
+      const verificationToken = user.generateVerificationToken();
+      await user.save();
+
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: `Verify Your Email - ${platformName}`,
+          text: `Your verification code is: ${verificationToken}`,
+          html: `<p>Your verification code is: <strong>${verificationToken}</strong></p><p>This code will expire in 10 minutes.</p>`
+        });
+      } catch (emailError) {
+        console.error('Failed to resend verification code during login:', emailError.message);
+      }
+
       res.status(401);
-      throw new Error('Please verify your account first');
+      const error = new Error('Please verify your account first');
+      error.code = 'EMAIL_NOT_VERIFIED';
+      error.email = user.email;
+      error.verificationSent = true;
+      throw error;
     }
 
     if (user.isBanned) {
