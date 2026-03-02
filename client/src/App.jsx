@@ -192,6 +192,10 @@ function App() {
           </ProtectedRoute>
         } />
 
+        {/* Browse Properties (inside dashboard for all roles) */}
+        <Route path="properties" element={<Properties />} />
+        <Route path="properties/:id" element={<PropertyDetails />} />
+
         {/* Common Routes */}
         <Route path="messages" element={<Messages />} />
         <Route path="leases" element={<Leases />} />

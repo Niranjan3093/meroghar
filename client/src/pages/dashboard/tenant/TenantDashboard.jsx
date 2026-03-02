@@ -191,7 +191,7 @@ function TenantDashboard() {
             <div className="text-center py-8">
               <FiHome className="mx-auto text-4xl text-gray-300 mb-3" />
               <p className="text-gray-500 mb-4">You don't have an active lease yet</p>
-              <Link to="/properties" className="btn-primary inline-block">
+              <Link to="/dashboard/properties" className="btn-primary inline-block">
                 <FiSearch className="inline mr-2" />
                 Browse Properties
               </Link>
@@ -275,7 +275,7 @@ function TenantDashboard() {
               </div>
             </Link>
             <Link 
-              to="/properties" 
+              to="/dashboard/properties" 
               className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition group"
             >
               <div className="p-2 bg-blue-100 rounded-lg mr-3 group-hover:bg-blue-200 transition">

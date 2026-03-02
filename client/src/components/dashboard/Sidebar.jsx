@@ -20,7 +20,7 @@ function Sidebar() {
 
   const tenantLinks = [
     { to: '/dashboard/tenant', icon: FiBarChart2, label: 'Dashboard' },
-    { to: '/properties', icon: FiHome, label: 'Browse Properties' },
+    { to: '/dashboard/properties', icon: FiHome, label: 'Browse Properties' },
     { to: '/dashboard/lease-requests', icon: FiClipboard, label: 'Lease Requests' },
     { to: '/dashboard/leases', icon: FiFileText, label: 'My Leases' },
     { to: '/dashboard/payments', icon: FiDollarSign, label: 'Payments' },
