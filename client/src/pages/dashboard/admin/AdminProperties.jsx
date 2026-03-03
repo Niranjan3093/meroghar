@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { adminAPI } from '../../../utils/api'
-import { FiHome, FiUser, FiMapPin, FiFilter, FiEye, FiCheck, FiX, FiCalendar, FiDollarSign } from 'react-icons/fi'
+import { FiHome, FiUser, FiMapPin, FiFilter, FiEye, FiCheck, FiX, FiCalendar, FiDollarSign, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { toast } from 'react-toastify'
+import PropertyStatusBadge from '../../../components/PropertyStatusBadge'
+import UserAvatar from '../../../components/UserAvatar'
 
 function AdminProperties() {
+  const [searchParams] = useSearchParams()
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
-  const [verificationFilter, setVerificationFilter] = useState('all')
+  const [verificationFilter, setVerificationFilter] = useState(searchParams.get('verification') || 'all')
   const [selectedProperty, setSelectedProperty] = useState(null)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const [propertyDetails, setPropertyDetails] = useState(null)
@@ -15,6 +19,7 @@ function AdminProperties() {
   const [processingId, setProcessingId] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
   const [showRejectModal, setShowRejectModal] = useState(false)
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
 
   useEffect(() => {
     fetchProperties()
@@ -169,15 +174,158 @@ function AdminProperties() {
         </div>
       </div>
 
-      {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {properties.length === 0 ? (
-          <div className="col-span-full text-center py-12 bg-white rounded-lg shadow">
-            <FiHome className="mx-auto text-4xl text-gray-400 mb-4" />
-            <p className="text-gray-500">No properties found</p>
-          </div>
-        ) : (
-          properties.map((property) => (
+      {/* Properties Display */}
+      {properties.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg shadow">
+          {verificationFilter === 'pending' ? (
+            <>
+              <FiCheck className="mx-auto text-5xl text-blue-600 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">All Caught Up!</h3>
+              <p className="text-gray-600">No properties pending verification at the moment.</p>
+            </>
+          ) : (
+            <>
+              <FiHome className="mx-auto text-4xl text-gray-400 mb-4" />
+              <p className="text-gray-500">No properties found</p>
+            </>
+          )}
+        </div>
+      ) : verificationFilter === 'pending' ? (
+        /* Detailed Pending Properties View */
+        <div className="grid grid-cols-1 gap-6">
+          {properties.map((property) => (
+            <div key={property._id} className="card">
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Property Image */}
+                <div className="lg:w-1/3">
+                  {property.images && property.images.length > 0 ? (
+                    <img
+                      src={property.images[0]?.url || property.images[0]}
+                      alt={property.title}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                  ) : (
+                    <div className="w-full h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <FiHome className="w-16 h-16 text-gray-400" />
+                    </div>
+                  )}
+                  {property.images && property.images.length > 1 && (
+                    <p className="text-sm text-gray-500 mt-2 text-center">
+                      +{property.images.length - 1} more photo{property.images.length - 1 > 1 ? 's' : ''}
+                      <button
+                        onClick={() => fetchPropertyDetails(property._id)}
+                        className="ml-2 text-primary-600 hover:underline"
+                      >
+                        View all
+                      </button>
+                    </p>
+                  )}
+                </div>
+
+                {/* Property Details */}
+                <div className="lg:w-2/3">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-2xl font-bold mb-2">{property.title}</h3>
+                      <PropertyStatusBadge 
+                        status={property.status} 
+                        verificationStatus={property.verificationStatus}
+                      />
+                    </div>
+                    <button
+                      onClick={() => fetchPropertyDetails(property._id)}
+                      className="btn bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm flex items-center gap-1"
+                    >
+                      <FiEye /> Full Details
+                    </button>
+                  </div>
+
+                  <p className="text-gray-600 mb-4 line-clamp-2">{property.description}</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center text-gray-700">
+                      <FiMapPin className="mr-2 text-gray-400 flex-shrink-0" />
+                      <span>
+                        {property.address?.street}, {property.address?.city}
+                        {property.address?.state && `, ${property.address.state}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center text-gray-700">
+                      <FiDollarSign className="mr-2 text-gray-400 flex-shrink-0" />
+                      <span className="font-semibold">
+                        NPR {(property.rent || property.monthlyRent)?.toLocaleString()}/month
+                      </span>
+                    </div>
+
+                    <div className="flex items-center text-gray-700">
+                      <FiHome className="mr-2 text-gray-400 flex-shrink-0" />
+                      <span className="capitalize">{property.propertyType}</span>
+                      {property.bedrooms && (
+                        <span className="ml-2">• {property.bedrooms} bed</span>
+                      )}
+                      {property.bathrooms && (
+                        <span className="ml-2">• {property.bathrooms} bath</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center text-gray-700">
+                      <FiUser className="mr-2 text-gray-400 flex-shrink-0" />
+                      <span>
+                        Host: {property.host?.name || 'Unknown'}
+                        {property.host?.rating > 0 && (
+                          <span className="ml-2">⭐ {property.host.rating.toFixed(1)}</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Amenities */}
+                  {property.amenities && property.amenities.length > 0 && (
+                    <div className="mb-4">
+                      <h4 className="font-semibold mb-2">Amenities:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {property.amenities.map((amenity, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                          >
+                            {amenity.replace('-', ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t">
+                    <button
+                      onClick={() => handleApprove(property._id)}
+                      disabled={processingId === property._id}
+                      className="flex-1 btn btn-primary flex items-center justify-center gap-2"
+                    >
+                      <FiCheck />
+                      {processingId === property._id ? 'Approving...' : 'Approve Property'}
+                    </button>
+                    
+                    <button
+                      onClick={() => openRejectModal(property)}
+                      disabled={processingId === property._id}
+                      className="flex-1 btn bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
+                    >
+                      <FiX />
+                      {processingId === property._id ? 'Rejecting...' : 'Reject Property'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Standard Grid View for non-pending */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {properties.map((property) => (
             <div key={property._id} className="bg-white rounded-lg shadow overflow-hidden">
               <div className="relative">
                 <img
@@ -209,7 +357,7 @@ function AdminProperties() {
                 
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-primary-600 font-bold">
-                    Rs. {property.monthlyRent?.toLocaleString()}/mo
+                    Rs. {(property.rent || property.monthlyRent)?.toLocaleString()}/mo
                   </span>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(property.status)}`}>
                     {property.status}
@@ -245,9 +393,9 @@ function AdminProperties() {
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Property Details Modal */}
       {showDetailsModal && propertyDetails && (
@@ -257,65 +405,148 @@ function AdminProperties() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold">Property Details</h2>
                 <button
-                  onClick={() => setShowDetailsModal(false)}
+                  onClick={() => { setShowDetailsModal(false); setActiveImageIndex(0) }}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <FiX className="text-2xl" />
                 </button>
               </div>
 
-              {/* Property Images */}
-              <div className="mb-6">
-                <div className="grid grid-cols-3 gap-2">
-                  {propertyDetails.property.images?.slice(0, 3).map((img, index) => (
+              {/* Property Image Gallery */}
+              {propertyDetails.property.images && propertyDetails.property.images.length > 0 && (
+                <div className="mb-6">
+                  {/* Main Image with Navigation */}
+                  <div className="relative rounded-lg overflow-hidden mb-3">
                     <img
-                      key={index}
-                      src={img?.url || img || 'https://via.placeholder.com/200x150?text=No+Image'}
-                      alt={`Property ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg"
+                      src={propertyDetails.property.images[activeImageIndex]?.url || propertyDetails.property.images[activeImageIndex] || 'https://via.placeholder.com/800x400?text=No+Image'}
+                      alt={`Property ${activeImageIndex + 1}`}
+                      className="w-full h-80 object-cover"
                     />
-                  ))}
+                    {propertyDetails.property.images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setActiveImageIndex(prev => prev === 0 ? propertyDetails.property.images.length - 1 : prev - 1)}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2"
+                        >
+                          <FiChevronLeft className="text-xl" />
+                        </button>
+                        <button
+                          onClick={() => setActiveImageIndex(prev => prev === propertyDetails.property.images.length - 1 ? 0 : prev + 1)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2"
+                        >
+                          <FiChevronRight className="text-xl" />
+                        </button>
+                        <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-sm px-3 py-1 rounded-full">
+                          {activeImageIndex + 1} / {propertyDetails.property.images.length}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Thumbnail Strip */}
+                  {propertyDetails.property.images.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {propertyDetails.property.images.map((img, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setActiveImageIndex(index)}
+                          className={`flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+                            activeImageIndex === index ? 'border-primary-600 ring-2 ring-primary-300' : 'border-transparent hover:border-gray-300'
+                          }`}
+                        >
+                          <img
+                            src={img?.url || img || 'https://via.placeholder.com/100x80?text=No+Image'}
+                            alt={`Thumbnail ${index + 1}`}
+                            className="w-20 h-16 object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
               {/* Property Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <h3 className="font-semibold text-lg mb-3">{propertyDetails.property.title}</h3>
+                  <div className="flex items-center gap-3 mb-3">
+                    <h3 className="font-semibold text-lg">{propertyDetails.property.title}</h3>
+                    <PropertyStatusBadge 
+                      status={propertyDetails.property.status} 
+                      verificationStatus={propertyDetails.property.verificationStatus}
+                    />
+                  </div>
                   <p className="text-gray-600 mb-4">{propertyDetails.property.description}</p>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-center text-gray-600">
-                      <FiMapPin className="mr-2" />
+                      <FiMapPin className="mr-2 flex-shrink-0" />
                       {propertyDetails.property.address?.street}, {propertyDetails.property.address?.city}
+                      {propertyDetails.property.address?.state && `, ${propertyDetails.property.address.state}`}
+                    </div>
+                    <div className="flex items-center text-gray-700 font-semibold">
+                      <FiDollarSign className="mr-2 flex-shrink-0" />
+                      NPR {(propertyDetails.property.rent || propertyDetails.property.monthlyRent)?.toLocaleString()}/month
+                    </div>
+                    {propertyDetails.property.securityDeposit && (
+                      <div className="flex items-center text-gray-600">
+                        <FiDollarSign className="mr-2 flex-shrink-0" />
+                        Security Deposit: NPR {propertyDetails.property.securityDeposit?.toLocaleString()}
+                      </div>
+                    )}
+                    <div className="flex items-center text-gray-600">
+                      <FiHome className="mr-2 flex-shrink-0" />
+                      <span className="capitalize">{propertyDetails.property.propertyType}</span>
+                      {propertyDetails.property.bedrooms && (
+                        <span className="ml-2">• {propertyDetails.property.bedrooms} bed</span>
+                      )}
+                      {propertyDetails.property.bathrooms && (
+                        <span className="ml-2">• {propertyDetails.property.bathrooms} bath</span>
+                      )}
                     </div>
                     <div className="flex items-center text-gray-600">
-                      <FiDollarSign className="mr-2" />
-                      Rs. {propertyDetails.property.monthlyRent?.toLocaleString()}/month
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                      <FiCalendar className="mr-2" />
+                      <FiCalendar className="mr-2 flex-shrink-0" />
                       Listed: {new Date(propertyDetails.property.createdAt).toLocaleDateString()}
                     </div>
                   </div>
+
+                  {/* Amenities */}
+                  {propertyDetails.property.amenities && propertyDetails.property.amenities.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold mb-2">Amenities:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {propertyDetails.property.amenities.map((amenity, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                          >
+                            {amenity.replace('-', ' ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Host Info */}
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h4 className="font-semibold mb-3">Host Information</h4>
                   <div className="flex items-center mb-3">
-                    <img
-                      src={propertyDetails.property.host?.avatar || 'https://via.placeholder.com/40'}
-                      alt={propertyDetails.property.host?.name}
-                      className="w-12 h-12 rounded-full mr-3"
+                    <UserAvatar
+                      name={propertyDetails.property.host?.name}
+                      avatarUrl={propertyDetails.property.host?.avatar}
+                      size="lg"
                     />
-                    <div>
+                    <div className="ml-3">
                       <p className="font-medium">{propertyDetails.property.host?.name}</p>
                       <p className="text-sm text-gray-600">{propertyDetails.property.host?.email}</p>
                     </div>
                   </div>
                   {propertyDetails.property.host?.phone && (
                     <p className="text-sm text-gray-600">Phone: {propertyDetails.property.host.phone}</p>
+                  )}
+                  {propertyDetails.property.host?.rating > 0 && (
+                    <p className="text-sm text-gray-600 mt-1">Rating: ⭐ {propertyDetails.property.host.rating.toFixed(1)}</p>
                   )}
                 </div>
               </div>
@@ -365,19 +596,20 @@ function AdminProperties() {
                       handleApprove(propertyDetails.property._id)
                     }}
                     disabled={processingId}
-                    className="flex-1 btn bg-green-600 hover:bg-green-700 text-white"
+                    className="flex-1 btn bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
                   >
-                    Approve Property
+                    <FiCheck /> Approve Property
                   </button>
                   <button
                     onClick={() => {
                       setShowDetailsModal(false)
+                      setActiveImageIndex(0)
                       openRejectModal(propertyDetails.property)
                     }}
                     disabled={processingId}
-                    className="flex-1 btn bg-red-600 hover:bg-red-700 text-white"
+                    className="flex-1 btn bg-red-600 hover:bg-red-700 text-white flex items-center justify-center gap-2"
                   >
-                    Reject Property
+                    <FiX /> Reject Property
                   </button>
                 </div>
               )}

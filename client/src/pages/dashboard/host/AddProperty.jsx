@@ -1,13 +1,70 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { propertiesAPI } from '../../../utils/api'
 import { toast } from 'react-toastify'
 import { FiHome, FiMapPin, FiDollarSign, FiImage, FiX, FiPlus, FiCheck, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 
+const NEPAL_CITIES = [
+  'Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Biratnagar', 'Birgunj',
+  'Bharatpur', 'Dharan', 'Butwal', 'Hetauda', 'Janakpur', 'Itahari',
+  'Nepalgunj', 'Dhangadhi', 'Tulsipur', 'Ghorahi', 'Damak', 'Mechinagar',
+  'Siddharthanagar', 'Lahan', 'Rajbiraj', 'Gaur', 'Kalaiya', 'Tansen',
+  'Tikapur', 'Gulariya', 'Dhulikhel', 'Banepa', 'Panauti', 'Thimi',
+  'Kirtipur', 'Tokha', 'Budhanilkantha', 'Kageshwari Manohara', 'Godawari',
+  'Chandragiri', 'Dakshinkali', 'Nagarjun', 'Tarakeshwar', 'Madhyapur Thimi',
+  'Suryabinayak', 'Changunarayan', 'Lekhnath', 'Waling', 'Kapilvastu',
+  'Gorkha', 'Lamjung', 'Baglung', 'Myagdi', 'Parbat',
+  'Damauli', 'Byas', 'Kawasoti', 'Ramgram', 'Bardaghat',
+  'Sunwal', 'Devdaha', 'Lumbini Sanskritik', 'Tilottama', 'Sainamaina',
+  'Kohalpur', 'Lamki', 'Attariya', 'Mahendranagar', 'Bhimdatta',
+  'Birendranagar', 'Narayan', 'Surkhet', 'Jumla', 'Simikot',
+  'Dipayal Silgadhi', 'Amargadhi', 'Dasharathchand', 'Doti',
+  'Inaruwa', 'Triyuga', 'Belaka', 'Katari', 'Chaudandigadhi',
+  'Gaighat', 'Myanglung', 'Khandbari', 'Chainpur', 'Taplejung',
+  'Phidim', 'Ilam', 'Birtamod', 'Urlabari', 'Sundarharaincha',
+  'Rangeli', 'Belbari', 'Letang', 'Pathari Shanischare', 'Sundarijal',
+  'Kamalamai', 'Jaleshwar', 'Malangwa', 'Hariwan', 'Chandrapur',
+  'Mirchaiya', 'Lalbandi', 'Bardibas', 'Sindhuli', 'Dhulikhel',
+  'Chautara', 'Melamchi', 'Bidur', 'Trisuli', 'Dhunche',
+  'Palpa', 'Rampur', 'Beni', 'Jomsom', 'Manang',
+  'Sandhikharka', 'Pyuthan', 'Rolpa', 'Rukum', 'Salyan',
+  'Musikot', 'Dullu', 'Dailekh', 'Narayan Municipality',
+  'Banke', 'Bardiya', 'Dang', 'Kapilvastu', 'Arghakhanchi',
+  'Gulmi', 'Nawalpur', 'Tanahun', 'Kaski', 'Syangja',
+  'Mustang', 'Dolpa', 'Mugu', 'Humla', 'Kalikot',
+  'Jajarkot', 'Bajura', 'Bajhang', 'Darchula', 'Baitadi',
+  'Dadeldhura', 'Kanchanpur', 'Mahakali', 'Seti',
+  'Bhojpur', 'Solukhumbu', 'Okhaldhunga', 'Diktel', 'Terhathum',
+  'Panchthar', 'Sankhuwasabha', 'Dhankuta', 'Sunsari', 'Morang',
+  'Jhapa', 'Saptari', 'Siraha', 'Dhanusa', 'Mahottari',
+  'Sarlahi', 'Rautahat', 'Bara', 'Parsa', 'Chitwan',
+  'Makwanpur', 'Sindhuli', 'Ramechhap', 'Dolakha', 'Sindhupalchok',
+  'Kavrepalanchok', 'Nuwakot', 'Rasuwa', 'Dhading', 'Gorakhpur',
+  'Manpur', 'Pyuthan', 'Jomsom', 'Besisahar', 'Chame',
+  'Kushma', 'Galyangd', 'Putalisadak', 'Baneshwor', 'Chabahil',
+  'Bouddha', 'Jorpati', 'Gongabu', 'Kalanki', 'Balkhu',
+  'Satdobato', 'Lagankhel', 'Jawalakhel', 'Pulchowk', 'Kupondole',
+  'Patan', 'Mangalbazar', 'Thamel', 'Durbar Marg', 'New Road',
+  'Asan', 'Basantapur', 'Balaju', 'Maharajgunj', 'Lazimpat',
+  'Naxal', 'Battisputali', 'Koteshwor', 'Tinkune', 'Sinamangal',
+  'Gaushala', 'Pashupatinath', 'Mitrapark', 'Battisputali',
+  'Sukedhara', 'Kapan', 'Chunikhel', 'Budhanilkantha',
+  'Sundarijal', 'Sankhu', 'Nagarkot', 'Kakani', 'Thankot',
+  'Pharping', 'Chapagaun', 'Lubhu', 'Tikathali', 'Imadol',
+  'Lamatar', 'Godavari', 'Harisiddhi', 'Thecho', 'Bungamati',
+  'Khokana', 'Chovar', 'Kritipur', 'Naikap', 'Sitapaila',
+  'Swayambhu', 'Ichangu', 'Ranipauwa', 'Goldhunga', 'Manmaiju',
+  'Samakhushi', 'Banasthali', 'Dhapasi', 'Grande', 'Tokha',
+  'Sangam Chowk', 'Gangabu', 'Machhapokhari', 'Basundhara'
+].filter((v, i, a) => a.indexOf(v) === i).sort()
+
 function AddProperty() {
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [citySearch, setCitySearch] = useState('')
+  const [showCityDropdown, setShowCityDropdown] = useState(false)
+  const cityDropdownRef = useRef(null)
   const [formData, setFormData] = useState({
     // Basic Info
     title: '',
@@ -61,6 +118,28 @@ function AddProperty() {
     { value: 'office', label: 'Office' },
     { value: 'villa', label: 'Villa' }
   ]
+
+  // Close city dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target)) {
+        setShowCityDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const filteredCities = NEPAL_CITIES.filter(city =>
+    city.toLowerCase().includes(citySearch.toLowerCase())
+  )
+
+  const handleCitySelect = (city) => {
+    setFormData({ ...formData, city: city.toLowerCase() })
+    setCitySearch(city)
+    setShowCityDropdown(false)
+    if (formErrors.city) setFormErrors({ ...formErrors, city: '' })
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -330,23 +409,44 @@ function AddProperty() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div ref={cityDropdownRef} className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
-                  <select
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
+                  <input
+                    type="text"
+                    value={citySearch}
+                    onChange={(e) => {
+                      setCitySearch(e.target.value)
+                      setShowCityDropdown(true)
+                      if (!e.target.value) {
+                        setFormData({ ...formData, city: '' })
+                      }
+                    }}
+                    onFocus={() => setShowCityDropdown(true)}
+                    placeholder="Type to search city..."
                     className={`input-field ${formErrors.city ? 'border-red-500' : ''}`}
-                    required
-                  >
-                    <option value="">Select city</option>
-                    <option value="kathmandu">Kathmandu</option>
-                    <option value="lalitpur">Lalitpur</option>
-                    <option value="bhaktapur">Bhaktapur</option>
-                    <option value="pokhara">Pokhara</option>
-                    <option value="biratnagar">Biratnagar</option>
-                    <option value="birgunj">Birgunj</option>
-                  </select>
+                    autoComplete="off"
+                  />
+                  {formErrors.city && <p className="text-red-500 text-sm mt-1">{formErrors.city}</p>}
+                  {showCityDropdown && (
+                    <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredCities.length === 0 ? (
+                        <div className="px-4 py-3 text-sm text-gray-500">No cities found</div>
+                      ) : (
+                        filteredCities.map((city) => (
+                          <button
+                            key={city}
+                            type="button"
+                            onClick={() => handleCitySelect(city)}
+                            className={`w-full text-left px-4 py-2.5 text-sm hover:bg-primary-50 hover:text-primary-700 transition ${
+                              formData.city === city.toLowerCase() ? 'bg-primary-50 text-primary-700 font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            {city}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Area/Zone</label>

@@ -106,7 +106,7 @@ function AdminDashboard() {
           </div>
           
           <div className="card cursor-pointer hover:shadow-lg transition-shadow">
-            <Link to="/dashboard/admin/properties/pending">
+            <Link to="/dashboard/admin/properties?verification=pending">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-medium text-gray-600">Pending Approval</h3>
                 <FiClock className="text-orange-400" />
@@ -166,7 +166,7 @@ function AdminDashboard() {
         <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link 
-            to="/dashboard/admin/properties/pending"
+            to="/dashboard/admin/properties?verification=pending"
             className="card hover:shadow-lg transition-shadow cursor-pointer border-2 border-transparent hover:border-primary-500"
           >
             <div className="flex items-center justify-between">

@@ -173,7 +173,7 @@ function App() {
         } />
         <Route path="admin/properties/pending" element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <PropertyVerification />
+            <Navigate to="/dashboard/admin/properties?verification=pending" replace />
           </ProtectedRoute>
         } />
         <Route path="admin/users" element={
