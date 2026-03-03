@@ -1,28 +1,30 @@
 import express from 'express';
-import crypto from 'crypto';
 const router = express.Router();
 import { protect } from '../middleware/authMiddleware.js';
 import Payment from '../models/Payment.js';
 import LeaseRequest from '../models/LeaseRequest.js';
 import { notifyRentPayment } from '../utils/notifications.js';
 import { generatePaymentReceipt } from '../utils/receiptGenerator.js';
-
-const ESEWA_BASE_URL = process.env.ESEWA_BASE_URL || 'https://epay.esewa.com.np';
-const ESEWA_FORM_URL = process.env.ESEWA_FORM_URL || `${ESEWA_BASE_URL}/api/epay/main/v2/form`;
-const ESEWA_STATUS_URL = process.env.ESEWA_STATUS_URL || `${ESEWA_BASE_URL}/api/epay/transaction/status/`;
+import { 
+  validateKhaltiConfig, 
+  getKhaltiPublicConfig,
+  initiateKhaltiPayment, 
+  verifyKhaltiPayment 
+} from '../utils/khalti.js';
+import { 
+  validateEsewaConfig, 
+  getEsewaPublicConfig,
+  initiateEsewaPayment, 
+  verifyEsewaPayment 
+} from '../utils/esewa.js';
 
 // Get payment gateway config
 router.get('/config', (req, res) => {
   res.json({ 
     success: true, 
     data: {
-      khalti: {
-        enabled: !!process.env.KHALTI_SECRET_KEY
-      },
-      esewa: {
-        merchantId: process.env.ESEWA_MERCHANT_ID || process.env.ESEWA_PRODUCT_CODE || '',
-        enabled: !!(process.env.ESEWA_SECRET_KEY && (process.env.ESEWA_MERCHANT_ID || process.env.ESEWA_PRODUCT_CODE))
-      }
+      khalti: getKhaltiPublicConfig(),
+      esewa: getEsewaPublicConfig()
     }
   });
 });
@@ -39,46 +41,28 @@ router.post('/esewa/initiate', protect, async (req, res) => {
       });
     }
 
-    const productCode = process.env.ESEWA_PRODUCT_CODE || process.env.ESEWA_MERCHANT_ID;
-    const secretKey = process.env.ESEWA_SECRET_KEY;
-
-    if (!productCode || !secretKey) {
+    const validation = validateEsewaConfig();
+    if (!validation.valid) {
       return res.status(500).json({
         success: false,
-        message: 'eSewa is not configured on server'
+        message: validation.message
       });
     }
 
-    const totalAmount = Number(amount);
-    const transactionUuid = `LEASE-${productIdentity}-${Date.now()}`;
     const finalSuccessUrl = successUrl || `${process.env.CLIENT_URL}/dashboard/pay-deposit/${productIdentity}/esewa-success`;
     const finalFailureUrl = failureUrl || `${process.env.CLIENT_URL}/dashboard/pay-deposit/${productIdentity}/esewa-failure`;
-    const signedFieldNames = 'total_amount,transaction_uuid,product_code';
-    const messageToSign = `total_amount=${totalAmount},transaction_uuid=${transactionUuid},product_code=${productCode}`;
-    const signature = crypto
-      .createHmac('sha256', secretKey)
-      .update(messageToSign)
-      .digest('base64');
+
+    const paymentData = await initiateEsewaPayment({
+      amount,
+      productIdentity,
+      successUrl: finalSuccessUrl,
+      failureUrl: finalFailureUrl
+    });
 
     return res.json({
       success: true,
       message: 'eSewa payload generated successfully',
-      data: {
-        url: ESEWA_FORM_URL,
-        fields: {
-          amount: totalAmount,
-          tax_amount: 0,
-          total_amount: totalAmount,
-          transaction_uuid: transactionUuid,
-          product_code: productCode,
-          product_service_charge: 0,
-          product_delivery_charge: 0,
-          success_url: finalSuccessUrl,
-          failure_url: finalFailureUrl,
-          signed_field_names: signedFieldNames,
-          signature
-        }
-      }
+      data: paymentData
     });
   } catch (error) {
     console.error('eSewa initiation error:', error);
@@ -102,51 +86,34 @@ router.post('/khalti/initiate', protect, async (req, res) => {
       });
     }
 
-    // Use provided return URL or fall back to CLIENT_URL
-    const finalReturnUrl = returnUrl || `${process.env.CLIENT_URL}/dashboard/pay-deposit/${productIdentity}`;
-
-    console.log(`🔗 Khalti Payment Initiation:`);
-    console.log(`   - Amount: NPR ${amount}`);
-    console.log(`   - Product ID: ${productIdentity}`);
-    console.log(`   - Return URL: ${finalReturnUrl}`);
-
-    // Initiate payment with Khalti API
-    const khaltiResponse = await fetch(process.env.KHALTI_INIT_URL || 'https://dev.khalti.com/api/v2/epayment/initiate/', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${process.env.KHALTI_SECRET_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        return_url: finalReturnUrl,
-        website_url: productUrl || process.env.CLIENT_URL || 'http://localhost:3000',
-        amount: amount * 100, // Convert to paisa
-        purchase_order_id: productIdentity,
-        purchase_order_name: productName,
-        customer_info: {
-          name: req.user.name,
-          email: req.user.email,
-          phone: req.user.phoneNumber || '9800000000'
-        }
-      })
-    });
-
-    const khaltiData = await khaltiResponse.json();
-
-    if (khaltiResponse.ok && khaltiData.payment_url) {
-      // Payment initiated successfully
-      return res.json({ 
-        success: true, 
-        message: 'Payment initiated successfully',
-        data: khaltiData
-      });
-    } else {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Payment initiation failed',
-        error: khaltiData
+    const validation = validateKhaltiConfig();
+    if (!validation.valid) {
+      return res.status(500).json({
+        success: false,
+        message: validation.message
       });
     }
+
+    const finalReturnUrl = returnUrl || `${process.env.CLIENT_URL}/dashboard/pay-deposit/${productIdentity}`;
+
+    const khaltiData = await initiateKhaltiPayment({
+      amount,
+      productIdentity,
+      productName,
+      productUrl,
+      returnUrl: finalReturnUrl,
+      customerInfo: {
+        name: req.user.name,
+        email: req.user.email,
+        phone: req.user.phoneNumber || '9800000000'
+      }
+    });
+
+    return res.json({ 
+      success: true, 
+      message: 'Payment initiated successfully',
+      data: khaltiData
+    });
   } catch (error) {
     console.error('Khalti initiation error:', error);
     return res.status(500).json({ 
@@ -253,20 +220,17 @@ router.post('/khalti/verify', protect, async (req, res) => {
       });
     }
 
-    // Verify payment with Khalti API
-    const khaltiResponse = await fetch(process.env.KHALTI_VERIFY_URL || 'https://dev.khalti.com/api/v2/epayment/lookup/', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Key ${process.env.KHALTI_SECRET_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ pidx })
-    });
+    const validation = validateKhaltiConfig();
+    if (!validation.valid) {
+      return res.status(500).json({
+        success: false,
+        message: validation.message
+      });
+    }
 
-    const khaltiData = await khaltiResponse.json();
+    const khaltiData = await verifyKhaltiPayment(pidx);
 
-    if (khaltiResponse.ok && khaltiData.status === 'Completed') {
-      // Payment verified successfully
+    if (khaltiData.verified) {
       return res.json({ 
         success: true, 
         message: 'Payment verified successfully',
@@ -301,53 +265,32 @@ router.post('/esewa/verify', protect, async (req, res) => {
       });
     }
 
-    const configuredProductCode = process.env.ESEWA_PRODUCT_CODE || process.env.ESEWA_MERCHANT_ID;
-    if (!configuredProductCode || !process.env.ESEWA_SECRET_KEY) {
+    const validation = validateEsewaConfig();
+    if (!validation.valid) {
       return res.status(500).json({
         success: false,
-        message: 'eSewa is not configured on server'
+        message: validation.message
       });
     }
 
-    if (product_code && product_code !== configuredProductCode) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid product code'
-      });
-    }
-
-    // Verify payment with eSewa status API
-    const params = new URLSearchParams({
-      product_code: configuredProductCode,
-      total_amount: String(total_amount),
-      transaction_uuid: String(transaction_uuid)
+    const esewaData = await verifyEsewaPayment({
+      transactionUuid: transaction_uuid,
+      totalAmount: total_amount,
+      productCode: product_code,
+      transactionCode: transaction_code
     });
 
-    const esewaResponse = await fetch(`${ESEWA_STATUS_URL}?${params}`, {
-      method: 'GET'
-    });
-
-    const responseData = await esewaResponse.json();
-
-    if (esewaResponse.ok && responseData.status === 'COMPLETE') {
-      if (transaction_code && responseData.transaction_code && responseData.transaction_code !== transaction_code) {
-        return res.status(400).json({
-          success: false,
-          message: 'Transaction code mismatch',
-          error: responseData
-        });
-      }
-
+    if (esewaData.verified) {
       return res.json({ 
         success: true, 
         message: 'Payment verified successfully',
-        data: responseData
+        data: esewaData
       });
     } else {
       return res.status(400).json({ 
         success: false, 
         message: 'Payment verification failed',
-        error: responseData
+        error: esewaData
       });
     }
   } catch (error) {
