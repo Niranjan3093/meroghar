@@ -56,7 +56,7 @@ function Messages() {
 
       newSocket.on('connect', () => {
         console.log('Socket connected')
-        newSocket.emit('join', user._id)
+        newSocket.emit('join', user._id || user.id)
       })
 
       newSocket.on('online-users', (users) => {
@@ -78,7 +78,7 @@ function Messages() {
       newSocket.on('new-message', (message) => {
         // Skip if message is from current user (already added optimistically)
         const senderId = message.sender?._id || message.sender
-        if (senderId === user._id) return
+        if (senderId === (user._id || user.id)) return
         
         setMessages(prev => {
           if (prev.some(m => m._id === message._id)) return prev
@@ -94,7 +94,7 @@ function Messages() {
       })
 
       newSocket.on('messages-read', ({ conversationId, userId }) => {
-        if (userId !== user._id) {
+        if (userId !== (user._id || user.id)) {
           setMessages(prev => prev.map(msg => ({
             ...msg,
             isRead: msg.conversation === conversationId ? true : msg.isRead
@@ -247,7 +247,7 @@ function Messages() {
       if (socket) {
         socket.emit('stop-typing', {
           conversationId: selectedConversation._id,
-          userId: user._id
+          userId: user._id || user.id
         })
       }
     } catch (error) {
@@ -263,7 +263,7 @@ function Messages() {
     
     socket.emit('typing', {
       conversationId: selectedConversation._id,
-      userId: user._id,
+      userId: user._id || user.id,
       userName: user.name
     })
 
@@ -274,7 +274,7 @@ function Messages() {
     typingTimeoutRef.current = setTimeout(() => {
       socket.emit('stop-typing', {
         conversationId: selectedConversation._id,
-        userId: user._id
+        userId: user._id || user.id
       })
     }, 2000)
   }, [socket, selectedConversation, user])
@@ -362,7 +362,8 @@ function Messages() {
 
   const getOtherParticipant = (conversation) => {
     if (!conversation?.participants) return null
-    return conversation.participants.find(p => p._id !== user?._id) || conversation.participants[0]
+    const myId = user?._id || user?.id
+    return conversation.participants.find(p => p._id !== myId) || conversation.participants[0]
   }
 
   const isUserOnline = (userId) => onlineUsers.has(userId)
@@ -693,7 +694,9 @@ function Messages() {
                 </div>
               ) : (
                 messages.map((message, index) => {
-                  const isOwn = message.sender?._id === user?._id || message.sender === user?._id
+                  const senderId = message.sender?._id || message.sender
+                  const userId = user?._id || user?.id
+                  const isOwn = senderId === userId
                   const showDate = index === 0 || 
                     formatDate(messages[index - 1]?.createdAt) !== formatDate(message.createdAt)
 
