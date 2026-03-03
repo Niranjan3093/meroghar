@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/authStore'
+import { authAPI } from '../../utils/api'
+import UserAvatar from '../../components/UserAvatar'
 import { FiUser, FiMail, FiPhone, FiLock, FiCamera, FiMapPin, FiCalendar, FiBell, FiShield, FiCreditCard, FiCheckCircle, FiAlertCircle, FiEdit, FiSave, FiX } from 'react-icons/fi'
 
 function Profile() {
@@ -7,6 +9,8 @@ function Profile() {
   const [activeTab, setActiveTab] = useState('profile')
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const fileInputRef = useRef(null)
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -79,6 +83,35 @@ function Profile() {
     }, 1000)
   }
 
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please upload a JPG or PNG image')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image must be less than 5MB')
+      return
+    }
+
+    setAvatarUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+      const res = await authAPI.uploadAvatar(formData)
+      const newAvatar = res.data.data.avatar
+      updateUser({ avatar: newAvatar })
+      setProfileData(prev => ({ ...prev, avatar: newAvatar }))
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to upload avatar')
+    } finally {
+      setAvatarUploading(false)
+    }
+  }
+
   const tabs = [
     { id: 'profile', label: 'Profile', icon: FiUser },
     { id: 'security', label: 'Security', icon: FiShield },
@@ -101,13 +134,30 @@ function Profile() {
             {/* Profile Card */}
             <div className="text-center pb-4 mb-4 border-b border-gray-100">
               <div className="relative inline-block">
-                <img 
-                  src={profileData.avatar} 
-                  alt={profileData.name}
-                  className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-white shadow-lg"
+                <UserAvatar
+                  name={profileData.name}
+                  avatar={profileData.avatar}
+                  size="2xl"
+                  className="mx-auto border-4 border-white shadow-lg"
                 />
-                <button className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition shadow-lg">
-                  <FiCamera className="text-sm" />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleAvatarUpload}
+                  accept="image/jpeg,image/jpg,image/png"
+                  className="hidden"
+                />
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={avatarUploading}
+                  className="absolute bottom-0 right-0 p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition shadow-lg disabled:opacity-50"
+                  title="Change profile picture"
+                >
+                  {avatarUploading ? (
+                    <span className="block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  ) : (
+                    <FiCamera className="text-sm" />
+                  )}
                 </button>
               </div>
               <h3 className="mt-4 font-semibold text-gray-900">{profileData.name}</h3>

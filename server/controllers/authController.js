@@ -3,6 +3,7 @@ import { sendEmail } from '../utils/email.js';
 import { sendSMS } from '../utils/sms.js';
 import passport from 'passport';
 import { notifyNewUserRegistration } from '../utils/notifications.js';
+import { cloudinary } from '../middleware/uploadMiddleware.js';
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -479,6 +480,40 @@ export const googleAuthCallback = (req, res, next) => {
       avatar: user.avatar
     }))}`);
   })(req, res, next);
+};
+
+// @desc    Upload/update avatar
+// @route   PUT /api/auth/upload-avatar
+// @access  Private
+export const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400);
+      throw new Error('Please upload an image');
+    }
+
+    const user = await User.findById(req.user.id);
+
+    // Delete old avatar from Cloudinary if it exists and is not placeholder
+    if (user.avatar && !user.avatar.includes('placeholder') && user.avatar.includes('cloudinary')) {
+      try {
+        const publicId = user.avatar.split('/').slice(-2).join('/').split('.')[0];
+        await cloudinary.uploader.destroy(publicId);
+      } catch (err) {
+        console.error('Error deleting old avatar:', err);
+      }
+    }
+
+    user.avatar = req.file.path;
+    await user.save();
+
+    res.json({
+      success: true,
+      data: { avatar: user.avatar }
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // Facebook OAuth

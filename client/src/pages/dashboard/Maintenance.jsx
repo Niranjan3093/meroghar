@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { maintenanceAPI, leasesAPI } from '../../utils/api'
 import { toast } from 'react-toastify'
+import UserAvatar from '../../components/UserAvatar'
 import { FiTool, FiPlus, FiClock, FiCheckCircle, FiAlertCircle, FiMessageSquare, FiImage, FiCalendar, FiUser, FiHome, FiFilter, FiX } from 'react-icons/fi'
 
 function Maintenance() {
@@ -282,7 +283,7 @@ function Maintenance() {
                     <div className="p-4 bg-gray-50 rounded-lg">
                       <p className="text-xs text-gray-500 mb-2">Submitted by</p>
                       <div className="flex items-center">
-                        <img src={request.reportedBy?.avatar || 'https://via.placeholder.com/40'} alt="" className="w-8 h-8 rounded-full mr-2" />
+                        <UserAvatar name={request.reportedBy?.name} avatar={request.reportedBy?.avatar} size="sm" className="mr-2" />
                         <span className="text-sm font-medium text-gray-900">{request.reportedBy?.name || 'User'}</span>
                       </div>
                     </div>

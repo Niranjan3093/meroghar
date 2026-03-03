@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { propertiesAPI, messagesAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
 import { toast } from 'react-toastify'
+import UserAvatar from '../../components/UserAvatar'
 import { 
   FiMapPin, FiHome, FiUser, FiPhone, FiMail, FiCalendar, 
   FiDollarSign, FiStar, FiHeart, FiShare2, FiChevronLeft, 
@@ -334,17 +335,7 @@ function PropertyDetails() {
             <div className="bg-white rounded-xl border border-gray-100 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Property Host</h3>
               <div className="flex items-center mb-4">
-                {property.host.avatar ? (
-                  <img
-                    src={property.host.avatar}
-                    alt={property.host.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                    <FiUser className="text-gray-400" />
-                  </div>
-                )}
+                <UserAvatar name={property.host.name} avatar={property.host.avatar} size="lg" />
                 <div className="ml-3">
                   <p className="font-medium text-gray-900">{property.host.name}</p>
                   {property.host.rating > 0 && (

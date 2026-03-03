@@ -1,12 +1,20 @@
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { FiHome, FiUser, FiLogOut, FiMenu } from 'react-icons/fi'
+import { useState } from 'react'
+import UserAvatar from './UserAvatar'
 
 function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore()
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const handleLogout = () => {
+    setShowLogoutModal(true)
+  }
+
+  const confirmLogout = () => {
     logout()
+    setShowLogoutModal(false)
   }
 
   return (
@@ -41,11 +49,7 @@ function Navbar() {
                 </Link>
                 <div className="flex items-center space-x-3">
                   <Link to="/dashboard/profile" className="flex items-center space-x-2">
-                    <img 
-                      src={user?.avatar || 'https://via.placeholder.com/40'} 
-                      alt={user?.name}
-                      className="w-8 h-8 rounded-full"
-                    />
+                    <UserAvatar name={user?.name} avatar={user?.avatar} size="sm" />
                     <span className="text-gray-700">{user?.name}</span>
                   </Link>
                   <button
@@ -75,6 +79,30 @@ function Navbar() {
           </button>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium"
+              >
+                No
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition font-medium"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }

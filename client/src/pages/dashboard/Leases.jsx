@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { leasesAPI } from '../../utils/api'
 import { toast } from 'react-toastify'
+import UserAvatar from '../../components/UserAvatar'
 import { FiFileText, FiCalendar, FiHome, FiUser, FiDollarSign, FiClock, FiCheckCircle, FiAlertCircle, FiDownload, FiEye, FiEdit, FiRefreshCw, FiX, FiFilter, FiPenTool, FiExternalLink } from 'react-icons/fi'
 
 function Leases() {
@@ -427,12 +428,11 @@ function Leases() {
                           {user?.role === 'host' ? 'Tenant' : 'Landlord'}
                         </p>
                         <div className="flex items-center">
-                          <img 
-                            src={user?.role === 'host' 
-                              ? (lease.tenant?.avatar || 'https://via.placeholder.com/40') 
-                              : (lease.host?.avatar || 'https://via.placeholder.com/40')} 
-                            alt="" 
-                            className="w-6 h-6 rounded-full mr-2"
+                          <UserAvatar 
+                            name={user?.role === 'host' ? (lease.tenant?.name || 'Tenant') : (lease.host?.name || 'Landlord')} 
+                            avatar={user?.role === 'host' ? lease.tenant?.avatar : lease.host?.avatar} 
+                            size="xs" 
+                            className="mr-2"
                           />
                           <span className="text-sm font-medium text-gray-900">
                             {user?.role === 'host' 

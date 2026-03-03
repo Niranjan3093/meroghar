@@ -2,15 +2,22 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { FiGrid, FiHome, FiUsers, FiCheckCircle, FiBarChart2, FiLogOut, FiMenu, FiX } from 'react-icons/fi'
 import { useState } from 'react'
+import UserAvatar from '../components/UserAvatar'
 
 function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const handleLogout = () => {
+    setShowLogoutModal(true)
+  }
+
+  const confirmLogout = () => {
     logout()
+    setShowLogoutModal(false)
     navigate('/admin')
   }
 
@@ -48,9 +55,7 @@ function AdminLayout() {
           {sidebarOpen && (
             <div className="p-4 border-b border-purple-700">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-lg font-semibold">{user?.name?.charAt(0) || 'A'}</span>
-                </div>
+                <UserAvatar name={user?.name} avatar={user?.avatar} size="md" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{user?.name || 'Admin'}</p>
                   <p className="text-purple-300 text-xs truncate">{user?.email}</p>
@@ -92,6 +97,30 @@ function AdminLayout() {
           </div>
         </div>
       </aside>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium"
+              >
+                No
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition font-medium"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">

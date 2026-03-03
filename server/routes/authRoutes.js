@@ -12,12 +12,14 @@ import {
   updateProfile,
   updatePassword,
   selectRole,
+  uploadAvatar,
   googleAuth,
   googleAuthCallback,
   facebookAuth,
   facebookAuthCallback
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
+import { upload } from '../middleware/uploadMiddleware.js';
 import {
   registerRules,
   loginRules,
@@ -50,6 +52,7 @@ router.get('/me', protect, getMe);
 router.put('/update-profile', protect, updateProfileRules, updateProfile);
 router.put('/update-password', protect, updatePasswordRules, updatePassword);
 router.put('/select-role', protect, selectRole);
+router.put('/upload-avatar', protect, upload.single('avatar'), uploadAvatar);
 router.post('/logout', protect, logout);
 
 export default router;

@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { leasesAPI } from '../../utils/api'
 import { toast } from 'react-toastify'
+import UserAvatar from '../../components/UserAvatar'
 import { 
   FiFileText, FiCalendar, FiUser, 
   FiClock, FiCheckCircle, FiAlertCircle, FiDownload, 
@@ -541,10 +542,11 @@ function LeaseDetails() {
                 {user?.role === 'host' ? 'Tenant Contact' : 'Landlord Contact'}
               </h2>
               <div className="flex flex-col items-center mb-5 pb-5 border-b border-gray-200">
-                <img
-                  src={otherParty?.avatar || 'https://via.placeholder.com/80'}
-                  alt={otherParty?.name}
-                  className="w-16 h-16 rounded-xl object-cover flex-shrink-0 shadow-md mb-3 border-2 border-gray-100"
+                <UserAvatar 
+                  name={otherParty?.name}
+                  avatar={otherParty?.avatar}
+                  size="xl"
+                  className="flex-shrink-0 shadow-md mb-3 border-2 border-gray-100"
                 />
                 <div className="text-center">
                   <p className="font-bold text-gray-900 mb-1">{otherParty?.name}</p>

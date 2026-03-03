@@ -3,6 +3,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { messagesAPI, leaseRequestsAPI } from '../../utils/api'
 import { toast } from 'react-toastify'
+import UserAvatar from '../../components/UserAvatar'
 import io from 'socket.io-client'
 import { 
   FiSend, FiSearch, FiMoreVertical, FiPaperclip, 
@@ -446,17 +447,7 @@ function Messages() {
                 >
                   <div className="flex items-start space-x-3">
                     <div className="relative flex-shrink-0">
-                      {otherUser?.avatar ? (
-                        <img
-                          src={otherUser.avatar}
-                          alt={otherUser.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
-                          <FiUser className="w-6 h-6 text-primary-600" />
-                        </div>
-                      )}
+                      <UserAvatar name={otherUser?.name} avatar={otherUser?.avatar} size="lg" />
                       {isOnline && (
                         <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                       )}
@@ -516,17 +507,7 @@ function Messages() {
                     <FiArrowLeft />
                   </button>
                   <div className="relative">
-                    {getOtherParticipant(selectedConversation)?.avatar ? (
-                      <img
-                        src={getOtherParticipant(selectedConversation).avatar}
-                        alt={getOtherParticipant(selectedConversation).name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                        <FiUser className="w-5 h-5 text-primary-600" />
-                      </div>
-                    )}
+                    <UserAvatar name={getOtherParticipant(selectedConversation)?.name} avatar={getOtherParticipant(selectedConversation)?.avatar} size="md" />
                     {isUserOnline(getOtherParticipant(selectedConversation)?._id) && (
                       <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
                     )}
@@ -665,17 +646,7 @@ function Messages() {
                       <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                         {!isOwn && (
                           <div className="flex-shrink-0 mr-2">
-                            {message.sender?.avatar ? (
-                              <img
-                                src={message.sender.avatar}
-                                alt={message.sender.name}
-                                className="w-8 h-8 rounded-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                <FiUser className="w-4 h-4 text-gray-500" />
-                              </div>
-                            )}
+                            <UserAvatar name={message.sender?.name} avatar={message.sender?.avatar} size="sm" />
                           </div>
                         )}
                         <div className={`max-w-[70%] ${isOwn ? 'order-2' : 'order-1'}`}>

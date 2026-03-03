@@ -1,11 +1,14 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { FiHome, FiMessageSquare, FiFileText, FiDollarSign, FiTool, FiUser, FiBarChart2, FiUsers, FiSettings, FiLogOut, FiPlus, FiChevronRight, FiClipboard } from 'react-icons/fi'
+import { useState } from 'react'
+import UserAvatar from '../UserAvatar'
 
 function Sidebar() {
   const { user, logout } = useAuthStore()
   const location = useLocation()
   const navigate = useNavigate()
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const hostLinks = [
     { to: '/dashboard/host', icon: FiBarChart2, label: 'Dashboard' },
@@ -41,7 +44,12 @@ function Sidebar() {
   const links = user?.role === 'host' ? hostLinks : user?.role === 'admin' ? adminLinks : tenantLinks
 
   const handleLogout = () => {
+    setShowLogoutModal(true)
+  }
+
+  const confirmLogout = () => {
     logout()
+    setShowLogoutModal(false)
     navigate('/')
   }
 
@@ -58,11 +66,7 @@ function Sidebar() {
         {/* User Info */}
         <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-xl">
           <div className="flex items-center space-x-3">
-            <img 
-              src={user?.avatar || 'https://via.placeholder.com/40'} 
-              alt={user?.name}
-              className="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover"
-            />
+            <UserAvatar name={user?.name} avatar={user?.avatar} size="lg" className="border-2 border-white shadow-sm" />
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-gray-900 truncate">{user?.name || 'User'}</h3>
               <p className="text-xs text-primary-600 capitalize font-medium">{user?.role} Account</p>
@@ -116,6 +120,30 @@ function Sidebar() {
           <span className="font-medium">Logout</span>
         </button>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium"
+              >
+                No
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition font-medium"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   )
 }
