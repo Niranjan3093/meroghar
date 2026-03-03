@@ -10,7 +10,7 @@ import {
   FiPhone, FiVideo, FiCheck, FiCheckCircle, FiImage, 
   FiUser, FiFlag, FiSlash, FiTrash2, FiX, FiHome,
   FiCalendar, FiDollarSign, FiClock, FiAlertCircle,
-  FiArrowLeft, FiInfo, FiFileText
+  FiArrowLeft, FiInfo, FiFileText, FiEdit
 } from 'react-icons/fi'
 
 function Messages() {
@@ -33,6 +33,11 @@ function Messages() {
   const [showLeaseRequestModal, setShowLeaseRequestModal] = useState(false)
   const [leaseRequests, setLeaseRequests] = useState([])
   const [reportData, setReportData] = useState({ type: '', description: '' })
+  const [showNewChatModal, setShowNewChatModal] = useState(false)
+  const [userSearchQuery, setUserSearchQuery] = useState('')
+  const [userSearchResults, setUserSearchResults] = useState([])
+  const [userSearchLoading, setUserSearchLoading] = useState(false)
+  const userSearchTimeoutRef = useRef(null)
   const [leaseRequestData, setLeaseRequestData] = useState({
     proposedMoveIn: '',
     proposedDuration: 'yearly',
@@ -388,6 +393,55 @@ function Messages() {
     )
   }
 
+  // User search for new chat
+  const handleUserSearch = (query) => {
+    setUserSearchQuery(query)
+    
+    if (userSearchTimeoutRef.current) {
+      clearTimeout(userSearchTimeoutRef.current)
+    }
+
+    if (query.trim().length < 2) {
+      setUserSearchResults([])
+      return
+    }
+
+    userSearchTimeoutRef.current = setTimeout(async () => {
+      setUserSearchLoading(true)
+      try {
+        const response = await messagesAPI.searchUsers(query.trim())
+        setUserSearchResults(response.data.data || [])
+      } catch (error) {
+        console.error('Error searching users:', error)
+        toast.error('Failed to search users')
+      } finally {
+        setUserSearchLoading(false)
+      }
+    }, 300)
+  }
+
+  const handleStartConversation = async (targetUser) => {
+    try {
+      const response = await messagesAPI.createConversation(targetUser._id)
+      const conversation = response.data.data
+      
+      setConversations(prev => {
+        const exists = prev.find(c => c._id === conversation._id)
+        if (exists) return prev
+        return [conversation, ...prev]
+      })
+
+      setSelectedConversation(conversation)
+      loadMessages(conversation._id)
+      setShowNewChatModal(false)
+      setUserSearchQuery('')
+      setUserSearchResults([])
+    } catch (error) {
+      console.error('Error starting conversation:', error)
+      toast.error('Failed to start conversation')
+    }
+  }
+
   const filteredConversations = conversations.filter(conv => {
     const otherUser = getOtherParticipant(conv)
     const searchLower = searchQuery.toLowerCase()
@@ -403,7 +457,16 @@ function Messages() {
       <div className={`w-full md:w-96 bg-white border-r border-gray-200 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-gray-900 mb-4">Messages</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-bold text-gray-900">Messages</h1>
+            <button
+              onClick={() => setShowNewChatModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium"
+            >
+              <FiEdit className="w-4 h-4" />
+              New Chat
+            </button>
+          </div>
           <div className="relative">
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -900,6 +963,87 @@ function Messages() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* New Chat Modal */}
+      {showNewChatModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">New Message</h2>
+              <button
+                onClick={() => {
+                  setShowNewChatModal(false)
+                  setUserSearchQuery('')
+                  setUserSearchResults([])
+                }}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div className="p-4 border-b border-gray-100">
+              <div className="relative">
+                <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={userSearchQuery}
+                  onChange={(e) => handleUserSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Search Results */}
+            <div className="flex-1 overflow-y-auto">
+              {userSearchLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                </div>
+              ) : userSearchQuery.trim().length < 2 ? (
+                <div className="text-center py-12 px-4">
+                  <FiSearch className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">Search for users</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Type a name or email address to find people
+                  </p>
+                </div>
+              ) : userSearchResults.length === 0 ? (
+                <div className="text-center py-12 px-4">
+                  <FiUser className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">No users found</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Try a different name or email address
+                  </p>
+                </div>
+              ) : (
+                <div className="py-2">
+                  {userSearchResults.map((searchUser) => (
+                    <button
+                      key={searchUser._id}
+                      onClick={() => handleStartConversation(searchUser)}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition text-left"
+                    >
+                      <UserAvatar name={searchUser.name} avatar={searchUser.avatar} size="lg" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{searchUser.name}</p>
+                        <p className="text-sm text-gray-500 truncate">{searchUser.email}</p>
+                      </div>
+                      <span className="text-xs text-gray-400 capitalize px-2 py-1 bg-gray-100 rounded-full">
+                        {searchUser.role}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

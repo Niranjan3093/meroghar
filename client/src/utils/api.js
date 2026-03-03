@@ -108,7 +108,8 @@ export const messagesAPI = {
   unblockUser: (userId) => api.delete(`/messages/block/${userId}`),
   report: (data) => api.post('/messages/report', data),
   reportUser: (conversationId, data) => api.post('/messages/report', { conversationId, ...data }),
-  deleteConversation: (conversationId) => api.delete(`/messages/conversation/${conversationId}`)
+  deleteConversation: (conversationId) => api.delete(`/messages/conversation/${conversationId}`),
+  searchUsers: (query) => api.get('/users/search', { params: { q: query } })
 }
 
 // Lease Requests API
