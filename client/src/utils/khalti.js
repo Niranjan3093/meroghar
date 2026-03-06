@@ -128,7 +128,10 @@ export const openKhaltiCheckout = async (config) => {
  */
 export const initiateKhaltiPaymentBackend = async (paymentData) => {
   try {
-    console.log('🔗 Initiating Khalti payment on backend...');
+    console.log('🔗 Initiating Khalti payment on backend...', paymentData);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout on client side
 
     const response = await fetch(`${KHALTI_CONFIG.apiUrl}/payments/khalti/initiate`, {
       method: 'POST',
@@ -136,19 +139,38 @@ export const initiateKhaltiPaymentBackend = async (paymentData) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${getAuthToken()}`
       },
+      signal: controller.signal,
       body: JSON.stringify(paymentData)
     });
 
+    clearTimeout(timeoutId);
+
     const data = await response.json();
+    
+    console.log('📦 Backend Response:', {
+      status: response.status,
+      data: data
+    });
 
     if (!response.ok) {
       throw new Error(data.message || 'Failed to initiate Khalti payment');
+    }
+
+    if (!data.data?.payment_url) {
+      console.error('❌ Missing payment_url in backend response:', data);
+      throw new Error('Backend returned invalid payment data');
     }
 
     console.log('✅ Khalti payment initiated');
     return data.data;
   } catch (error) {
     console.error('🚨 Khalti initiation error:', error);
+    
+    // Provide better error message for timeout
+    if (error.name === 'AbortError') {
+      throw new Error('Payment gateway connection timeout. The server is taking too long to respond. Please try again.');
+    }
+    
     throw error;
   }
 };

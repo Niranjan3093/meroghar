@@ -24,9 +24,31 @@ function PaySecurityDeposit() {
   const [paymentStep, setPaymentStep] = useState('select') // 'select', 'confirm', 'processing', 'success'
   const [completedPaymentId, setCompletedPaymentId] = useState(null)
 
+  const KhaltiLogo = () => (
+    <img 
+      src="/assets/khalti-logo.png" 
+      alt="Khalti Logo" 
+      className="w-8 h-8"
+      onError={(e) => {
+        e.target.style.display = 'none';
+      }}
+    />
+  )
+
+  const EsewaLogo = () => (
+    <img 
+      src="/assets/esewa-logo.png" 
+      alt="eSewa Logo" 
+      className="w-8 h-8"
+      onError={(e) => {
+        e.target.style.display = 'none';
+      }}
+    />
+  )
+
   const paymentMethods = [
-    { id: 'khalti', name: 'Khalti', icon: '💜', description: 'Pay with Khalti digital wallet' },
-    { id: 'esewa', name: 'eSewa', icon: '💚', description: 'Pay with eSewa digital wallet' }
+    { id: 'khalti', name: 'Khalti', icon: <KhaltiLogo />, description: 'Pay with Khalti digital wallet' },
+    { id: 'esewa', name: 'eSewa', icon: <EsewaLogo />, description: 'Pay with eSewa digital wallet' }
   ]
 
   const formatDuration = (duration) => {
@@ -93,16 +115,60 @@ function PaySecurityDeposit() {
       setProcessing(true)
       setPaymentStep('processing')
       
-      // Verify payment with backend
+      // Verify payment with backend (with retries)
       console.log('🔐 Verifying payment with backend...');
-      const verifyResponse = await paymentsAPI.verifyKhalti({
-        pidx: params.pidx,
-        amount: params.amount
-      })
+      let verifyResponse;
+      let verifyAttempt = 0;
+      const maxVerifyRetries = 5; // More retries for pending payments
       
-      console.log('Verification response:', verifyResponse.data);
+      while (verifyAttempt < maxVerifyRetries) {
+        try {
+          verifyResponse = await paymentsAPI.verifyKhalti({
+            pidx: params.pidx,
+            amount: params.amount
+          })
+          
+          console.log(`Verification attempt ${verifyAttempt + 1} response:`, verifyResponse.data);
+          
+          // Check if payment is successfully verified
+          if (verifyResponse.data.success) {
+            console.log('✅ Payment successfully verified');
+            break; // Payment confirmed, proceed to create lease
+          }
+          
+          // If payment is still pending (202 status), retry with longer delay
+          if (verifyResponse.status === 202 || !verifyResponse.data.success) {
+            verifyAttempt++;
+            console.log(`⏳ Payment status: ${verifyResponse.data.status}. Waiting...`);
+            
+            if (verifyAttempt < maxVerifyRetries) {
+              // Longer delays for pending checks (2s, 3s, 4s, 5s, 6s)
+              const delayMs = (verifyAttempt + 1) * 1000;
+              console.log(`⏳ Retrying verification in ${delayMs}ms (attempt ${verifyAttempt}/${maxVerifyRetries})...`);
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            } else {
+              throw new Error(`Payment verification timeout. Status: ${verifyResponse.data.status}. Please try again.`);
+            }
+          } else {
+            break; // Unexpected response
+          }
+        } catch (verifyError) {
+          verifyAttempt++;
+          console.error(`❌ Verification attempt ${verifyAttempt} failed:`, verifyError.message);
+          
+          if (verifyAttempt < maxVerifyRetries) {
+            const delayMs = Math.pow(2, verifyAttempt - 1) * 1000;
+            console.log(`⏳ Retrying verification in ${delayMs}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          } else {
+            throw verifyError; // All retries exhausted
+          }
+        }
+      }
       
-      if (verifyResponse.data.success) {
+      console.log('Final verification response:', verifyResponse?.data);
+      
+      if (verifyResponse?.data?.success) {
         // Payment verified, create lease
         console.log('Creating lease and processing payment...');
         const response = await leaseRequestsAPI.payDeposit(id, {
@@ -124,13 +190,16 @@ function PaySecurityDeposit() {
           navigate('/dashboard/lease-requests', { replace: true })
         }, 3000)
       } else {
-        throw new Error(verifyResponse.data.message || 'Payment verification failed')
+        throw new Error(verifyResponse?.data?.message || 'Payment verification failed after retries. Please try again.')
       }
     } catch (error) {
       console.error('Khalti verification failed:', error)
-      toast.error(error.message || 'Payment verification failed')
-      navigate(`/dashboard/pay-deposit/${id}`, { replace: true })
+      const errorMessage = error.message || 'Payment verification failed. Please contact support if the payment was deducted.';
+      toast.error(errorMessage)
+      setPaymentStep('select')
       setProcessing(false)
+      // Move back to payment page instead of redirecting away immediately
+      // navigate(`/dashboard/pay-deposit/${id}`, { replace: true })
     }
   }
 
@@ -272,13 +341,19 @@ function PaySecurityDeposit() {
 
         console.log('🚀 Khalti Initiation Response:', initiateResponse.data);
 
-        if (initiateResponse.data.success && initiateResponse.data.data.payment_url) {
-          // Redirect to Khalti payment page
-          console.log('🔗 Redirecting to:', initiateResponse.data.data.payment_url);
-          window.location.href = initiateResponse.data.data.payment_url;
-        } else {
+        if (!initiateResponse.data.success) {
           throw new Error(initiateResponse.data.message || 'Payment initiation failed');
         }
+
+        const paymentUrl = initiateResponse.data.data?.payment_url;
+        if (!paymentUrl) {
+          console.error('❌ Missing payment_url in response:', initiateResponse.data.data);
+          throw new Error('Payment gateway returned invalid response. Please try again.');
+        }
+
+        // Redirect to Khalti payment page
+        console.log('🔗 Redirecting to:', paymentUrl);
+        window.location.href = paymentUrl;
         
       } else if (selectedPaymentMethod === 'esewa') {
         // Check if payment config is loaded
@@ -322,7 +397,19 @@ function PaySecurityDeposit() {
     } catch (error) {
       console.error('Payment failed:', error);
       setPaymentStep('select');
-      toast.error(error.response?.data?.message || 'Payment failed. Please try again.');
+      
+      // Provide more detailed error message based on error type
+      let errorMessage = 'Payment failed. Please try again.';
+      
+      if (error.message?.includes('timeout') || error.message?.includes('Timeout')) {
+        errorMessage = 'Payment gateway connection timeout. Please check your internet and try again.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
       setProcessing(false);
     }
   }
@@ -427,7 +514,7 @@ function PaySecurityDeposit() {
                       onChange={(e) => setSelectedPaymentMethod(e.target.value)}
                       className="sr-only"
                     />
-                    <span className="text-2xl mr-3">{method.icon}</span>
+                    <span className="mr-3">{method.icon}</span>
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{method.name}</p>
                       <p className="text-sm text-gray-500">{method.description}</p>

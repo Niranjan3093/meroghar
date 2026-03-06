@@ -109,6 +109,8 @@ router.post('/khalti/initiate', protect, async (req, res) => {
       }
     });
 
+    console.log('✅ Khalti payment initiated, returning data:', khaltiData);
+
     return res.json({ 
       success: true, 
       message: 'Payment initiated successfully',
@@ -118,7 +120,7 @@ router.post('/khalti/initiate', protect, async (req, res) => {
     console.error('Khalti initiation error:', error);
     return res.status(500).json({ 
       success: false, 
-      message: 'Failed to initiate Khalti payment',
+      message: error.message || 'Failed to initiate Khalti payment',
       error: error.message
     });
   }
@@ -230,17 +232,27 @@ router.post('/khalti/verify', protect, async (req, res) => {
 
     const khaltiData = await verifyKhaltiPayment(pidx);
 
+    console.log('Khalti verification result:', {
+      verified: khaltiData.verified,
+      status: khaltiData.status,
+      full_response: khaltiData
+    });
+
     if (khaltiData.verified) {
+      console.log('✅ Payment verified - proceeding with lease creation');
       return res.json({ 
         success: true, 
         message: 'Payment verified successfully',
         data: khaltiData
       });
     } else {
-      return res.status(400).json({ 
+      // Payment not yet completed, but API call succeeded
+      console.warn('⏳ Payment status is:', khaltiData.status);
+      return res.status(202).json({ 
         success: false, 
-        message: 'Payment verification failed',
-        error: khaltiData
+        message: `Payment status: ${khaltiData.status}. Please wait for payment confirmation.`,
+        status: khaltiData.status,
+        data: khaltiData
       });
     }
   } catch (error) {
