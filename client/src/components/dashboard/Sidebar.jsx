@@ -37,6 +37,7 @@ function Sidebar() {
     { to: '/dashboard/admin/users', icon: FiUsers, label: 'Users' },
     { to: '/dashboard/admin/properties', icon: FiHome, label: 'Properties' },
     { to: '/dashboard/admin/leases', icon: FiFileText, label: 'Leases' },
+    { to: '/dashboard/messages', icon: FiMessageSquare, label: 'Messages' },
     { to: '/dashboard/admin/reports', icon: FiBarChart2, label: 'Reports' },
     { to: '/dashboard/admin/settings', icon: FiSettings, label: 'Settings' }
   ]
