@@ -44,6 +44,10 @@ function PropertyDetails() {
       toast.error('Please login to contact the host')
       return
     }
+    if (user._id === property.host._id) {
+      toast.error('You are in public view mode. You cannot message yourself.')
+      return
+    }
     if (!message.trim()) {
       toast.error('Please enter a message')
       return
@@ -321,13 +325,19 @@ function PropertyDetails() {
               <p className="text-xs text-gray-500">First month rent + security deposit</p>
             </div>
 
-            <button
-              onClick={() => setShowContactForm(true)}
-              className="w-full btn-primary flex items-center justify-center"
-            >
-              <FiMessageSquare className="mr-2" />
-              Contact Host
-            </button>
+            {user && user._id === property.host?._id ? (
+              <div className="w-full bg-blue-50 text-blue-700 text-center py-3 px-4 rounded-lg text-sm font-medium">
+                You are viewing this property in public view mode
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowContactForm(true)}
+                className="w-full btn-primary flex items-center justify-center"
+              >
+                <FiMessageSquare className="mr-2" />
+                Contact Host
+              </button>
+            )}
           </div>
 
           {/* Host Card */}

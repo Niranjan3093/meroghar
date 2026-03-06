@@ -20,7 +20,6 @@ import PropertyDetails from './pages/properties/PropertyDetails'
 import HostDashboard from './pages/dashboard/host/HostDashboard'
 import TenantDashboard from './pages/dashboard/tenant/TenantDashboard'
 import AdminDashboard from './pages/dashboard/admin/AdminDashboard'
-import PropertyVerification from './pages/dashboard/admin/PropertyVerification'
 import UserManagement from './pages/dashboard/admin/UserManagement'
 import AdminProperties from './pages/dashboard/admin/AdminProperties'
 import AdminLeases from './pages/dashboard/admin/AdminLeases'
@@ -148,6 +147,11 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="host/properties/add" element={
+          <ProtectedRoute allowedRoles={['host']}>
+            <AddProperty />
+          </ProtectedRoute>
+        } />
+        <Route path="host/properties/edit/:id" element={
           <ProtectedRoute allowedRoles={['host']}>
             <AddProperty />
           </ProtectedRoute>

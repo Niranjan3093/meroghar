@@ -98,6 +98,10 @@ const propertySchema = new mongoose.Schema({
     default: 'pending'
   },
   rejectionReason: String,
+  rejectionEditCount: {
+    type: Number,
+    default: 0
+  },
   
   // Lease tracking
   currentLease: {

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { propertiesAPI } from '../../../utils/api'
 import { toast } from 'react-toastify'
-import { FiHome, FiMapPin, FiDollarSign, FiImage, FiX, FiPlus, FiCheck, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import { FiHome, FiMapPin, FiDollarSign, FiImage, FiX, FiPlus, FiCheck, FiChevronLeft, FiChevronRight, FiAlertCircle } from 'react-icons/fi'
 
 const NEPAL_CITIES = [
   'Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Biratnagar', 'Birgunj',
@@ -60,8 +60,12 @@ const NEPAL_CITIES = [
 
 function AddProperty() {
   const navigate = useNavigate()
+  const { id: editId } = useParams()
+  const isEditMode = Boolean(editId)
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [fetchingProperty, setFetchingProperty] = useState(false)
+  const [editProperty, setEditProperty] = useState(null)
   const [citySearch, setCitySearch] = useState('')
   const [showCityDropdown, setShowCityDropdown] = useState(false)
   const cityDropdownRef = useRef(null)
@@ -129,6 +133,63 @@ function AddProperty() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Fetch property data when in edit mode
+  useEffect(() => {
+    if (!isEditMode) return
+    const fetchProperty = async () => {
+      try {
+        setFetchingProperty(true)
+        const response = await propertiesAPI.getById(editId)
+        const p = response.data.data
+
+        // Only allow editing pending or rejected properties
+        if (p.verificationStatus === 'verified') {
+          toast.error('Cannot edit an approved property')
+          navigate('/dashboard/host/properties')
+          return
+        }
+
+        // Check rejection edit limit
+        if (p.verificationStatus === 'rejected' && p.rejectionEditCount >= 3) {
+          toast.error('Maximum resubmission limit (3) reached for this property')
+          navigate('/dashboard/host/properties')
+          return
+        }
+
+        setEditProperty(p)
+
+        const leaseDurationMap = { 'monthly': 1, '3-months': 3, '6-months': 6, 'yearly': 12 }
+
+        setFormData({
+          title: p.title || '',
+          description: p.description || '',
+          type: p.propertyType || 'apartment',
+          address: p.address?.street || '',
+          city: p.address?.city || '',
+          state: p.address?.state || '',
+          zipCode: p.address?.zipCode || '',
+          bedrooms: p.bedrooms || 1,
+          bathrooms: p.bathrooms || 1,
+          area: p.area?.value ? String(p.area.value) : '',
+          furnished: 'unfurnished',
+          monthlyRent: p.rent ? String(p.rent) : '',
+          securityDeposit: p.securityDeposit ? String(p.securityDeposit) : '',
+          minimumLease: leaseDurationMap[p.leaseDuration] || 12,
+          amenities: p.amenities || [],
+          images: (p.images || []).map(img => ({ url: img.url, public_id: img.public_id, preview: img.url, isExisting: true }))
+        })
+        setCitySearch(p.address?.city ? p.address.city.charAt(0).toUpperCase() + p.address.city.slice(1) : '')
+      } catch (error) {
+        console.error('Failed to fetch property:', error)
+        toast.error('Failed to load property for editing')
+        navigate('/dashboard/host/properties')
+      } finally {
+        setFetchingProperty(false)
+      }
+    }
+    fetchProperty()
+  }, [editId, isEditMode, navigate])
 
   const filteredCities = NEPAL_CITIES.filter(city =>
     city.toLowerCase().includes(citySearch.toLowerCase())
@@ -206,7 +267,9 @@ function AddProperty() {
 
   const removeImage = (index) => {
     const newImages = [...formData.images]
-    URL.revokeObjectURL(newImages[index].preview)
+    if (!newImages[index].isExisting) {
+      URL.revokeObjectURL(newImages[index].preview)
+    }
     newImages.splice(index, 1)
     setFormData({ ...formData, images: newImages })
   }
@@ -223,10 +286,11 @@ function AddProperty() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Validate images
-    if (formData.images.length < 3) {
+    // Validate images - for new properties require 3, for edits check total (existing + new)
+    const totalImages = formData.images.length
+    if (totalImages < 3) {
       toast.error('Please upload at least 3 photos of your property')
-      setCurrentStep(5) // Go to photos step
+      setCurrentStep(5)
       return
     }
     
@@ -260,36 +324,84 @@ function AddProperty() {
         amenities: formData.amenities
       }
 
-      // Create the property
-      const response = await propertiesAPI.create(propertyData)
-      const createdProperty = response.data.data
+      if (isEditMode) {
+        // Keep existing images that weren't removed
+        const existingImages = formData.images.filter(img => img.isExisting).map(img => ({ url: img.url, public_id: img.public_id }))
+        propertyData.images = existingImages
 
-      // Upload images if any
-      if (formData.images.length > 0) {
-        const imageFormData = new FormData()
-        formData.images.forEach(img => {
-          imageFormData.append('images', img.file)
-        })
-        await propertiesAPI.uploadImages(createdProperty._id, imageFormData)
+        // Update the property
+        await propertiesAPI.update(editId, propertyData)
+
+        // Upload new images if any
+        const newImages = formData.images.filter(img => !img.isExisting)
+        if (newImages.length > 0) {
+          const imageFormData = new FormData()
+          newImages.forEach(img => {
+            imageFormData.append('images', img.file)
+          })
+          await propertiesAPI.uploadImages(editId, imageFormData)
+        }
+
+        toast.success('Property updated and resubmitted for review!')
+      } else {
+        // Create the property
+        const response = await propertiesAPI.create(propertyData)
+        const createdProperty = response.data.data
+
+        // Upload images if any
+        if (formData.images.length > 0) {
+          const imageFormData = new FormData()
+          formData.images.forEach(img => {
+            imageFormData.append('images', img.file)
+          })
+          await propertiesAPI.uploadImages(createdProperty._id, imageFormData)
+        }
+
+        toast.success('Property submitted for review! Admin will verify it shortly.')
       }
 
-      toast.success('Property submitted for review! Admin will verify it shortly.')
       navigate('/dashboard/host/properties')
     } catch (error) {
-      console.error('Failed to create property:', error)
-      toast.error(error.response?.data?.message || 'Failed to create property')
+      console.error('Failed to save property:', error)
+      toast.error(error.response?.data?.message || 'Failed to save property')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (fetchingProperty) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    )
   }
 
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Add New Property</h1>
-        <p className="text-gray-500 mt-1">List your property to start receiving tenants</p>
+        <h1 className="text-2xl font-bold text-gray-900">{isEditMode ? 'Edit Property' : 'Add New Property'}</h1>
+        <p className="text-gray-500 mt-1">{isEditMode ? 'Update your property and resubmit for review' : 'List your property to start receiving tenants'}</p>
       </div>
+
+      {/* Rejection Banner */}
+      {isEditMode && editProperty?.verificationStatus === 'rejected' && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-start">
+            <FiAlertCircle className="text-red-500 text-xl mt-0.5 mr-3 flex-shrink-0" />
+            <div>
+              <h3 className="font-medium text-red-800">Property was rejected</h3>
+              {editProperty.rejectionReason && (
+                <p className="text-red-700 text-sm mt-1">Reason: {editProperty.rejectionReason}</p>
+              )}
+              <p className="text-red-600 text-sm mt-1">
+                Resubmissions remaining: {3 - (editProperty.rejectionEditCount || 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Progress Steps */}
       <div className="mb-8">
@@ -759,12 +871,12 @@ function AddProperty() {
                 {loading ? (
                   <>
                     <span className="animate-spin mr-2">⏳</span>
-                    Publishing...
+                    {isEditMode ? 'Updating...' : 'Publishing...'}
                   </>
                 ) : (
                   <>
                     <FiCheck className="mr-2" />
-                    Publish Property
+                    {isEditMode ? 'Update & Resubmit' : 'Publish Property'}
                   </>
                 )}
               </button>

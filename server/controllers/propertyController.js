@@ -147,10 +147,46 @@ export const updateProperty = async (req, res, next) => {
       throw new Error('Not authorized to update this property');
     }
 
+    // Only allow editing if property is pending or rejected (not yet approved)
+    if (req.user.role !== 'admin') {
+      if (property.verificationStatus === 'verified') {
+        res.status(400);
+        throw new Error('Cannot edit an approved property');
+      }
+
+      // If rejected, check edit count (max 3 resubmissions)
+      if (property.verificationStatus === 'rejected') {
+        if (property.rejectionEditCount >= 3) {
+          res.status(400);
+          throw new Error('You have reached the maximum number of resubmissions (3) for this property');
+        }
+        // Resubmit for review: reset status back to pending and increment edit count
+        req.body.verificationStatus = 'pending';
+        req.body.status = 'pending';
+        req.body.rejectionEditCount = (property.rejectionEditCount || 0) + 1;
+        req.body.rejectionReason = null;
+      }
+    }
+
     property = await Property.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true
     });
+
+    // Notify admins about resubmitted property
+    if (req.body.verificationStatus === 'pending' && req.user.role !== 'admin') {
+      try {
+        const io = req.app.get('io');
+        await notifyPendingProperty(io, {
+          hostId: req.user._id,
+          hostName: req.user.name,
+          propertyTitle: property.title,
+          propertyId: property._id
+        });
+      } catch (notifError) {
+        console.error('Failed to notify admins:', notifError.message);
+      }
+    }
 
     res.json({
       success: true,

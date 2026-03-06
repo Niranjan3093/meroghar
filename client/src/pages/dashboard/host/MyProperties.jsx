@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { propertiesAPI } from '../../../utils/api'
 import PropertyStatusBadge from '../../../components/PropertyStatusBadge'
 import { FiHome, FiPlus, FiEdit, FiTrash2, FiEye, FiMapPin, FiDollarSign, FiStar, FiMoreVertical, FiFilter, FiGrid, FiList } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 
 function MyProperties() {
+  const navigate = useNavigate()
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
@@ -36,6 +37,25 @@ setLoading(true)
       : filter === 'rejected'
         ? properties.filter(p => p.status === 'rejected' || p.verificationStatus === 'rejected')
         : properties.filter(p => p.status === filter)
+
+  const canEdit = (property) => {
+    // Allow edit if pending or rejected (with < 3 resubmissions)
+    if (property.verificationStatus === 'pending') return true
+    if (property.verificationStatus === 'rejected' && (property.rejectionEditCount || 0) < 3) return true
+    return false
+  }
+
+  const handleEdit = (property) => {
+    if (!canEdit(property)) {
+      if (property.verificationStatus === 'verified') {
+        toast.error('Cannot edit an approved property')
+      } else if (property.verificationStatus === 'rejected' && (property.rejectionEditCount || 0) >= 3) {
+        toast.error('Maximum resubmission limit (3) reached for this property')
+      }
+      return
+    }
+    navigate(`/dashboard/host/properties/edit/${property._id}`)
+  }
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this property?')) {
@@ -166,6 +186,9 @@ setLoading(true)
                   <div className="absolute bottom-3 left-3 right-3 bg-white/95 p-2 rounded text-xs">
                     <p className="text-red-600 font-medium">Rejection Reason:</p>
                     <p className="text-gray-700">{property.rejectionReason}</p>
+                    {property.verificationStatus === 'rejected' && (
+                      <p className="text-orange-600 mt-1">Edits remaining: {3 - (property.rejectionEditCount || 0)}</p>
+                    )}
                   </div>
                 )}
                 <div className="absolute top-3 right-3">
@@ -211,9 +234,15 @@ setLoading(true)
                       >
                         <FiEye />
                       </Link>
-                      <button className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition">
-                        <FiEdit />
-                      </button>
+                      {canEdit(property) && (
+                        <button 
+                          onClick={() => handleEdit(property)}
+                          className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition"
+                          title="Edit property"
+                        >
+                          <FiEdit />
+                        </button>
+                      )}
                       <button 
                         onClick={() => setShowDeleteModal(property._id)}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
@@ -264,7 +293,14 @@ setLoading(true)
                   </div>
                   <div className="flex items-center gap-2 mt-4">
                     <Link to={`/properties/${property._id}`} className="px-3 py-1.5 text-sm text-gray-600 hover:text-primary-600 border border-gray-200 rounded-lg hover:border-primary-200 transition">View</Link>
-                    <button className="px-3 py-1.5 text-sm text-gray-600 hover:text-primary-600 border border-gray-200 rounded-lg hover:border-primary-200 transition">Edit</button>
+                    {canEdit(property) && (
+                      <button 
+                        onClick={() => handleEdit(property)}
+                        className="px-3 py-1.5 text-sm text-gray-600 hover:text-primary-600 border border-gray-200 rounded-lg hover:border-primary-200 transition"
+                      >
+                        Edit
+                      </button>
+                    )}
                     <button onClick={() => setShowDeleteModal(property._id)} className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition">Delete</button>
                   </div>
                 </div>
