@@ -4,26 +4,29 @@ import { useAuthStore } from '../../store/authStore'
 import { leasesAPI } from '../../utils/api'
 import { toast } from 'react-toastify'
 import UserAvatar from '../../components/UserAvatar'
-import { FiFileText, FiCalendar, FiHome, FiUser, FiDollarSign, FiClock, FiCheckCircle, FiAlertCircle, FiDownload, FiEye, FiEdit, FiRefreshCw, FiX, FiFilter, FiPenTool, FiExternalLink } from 'react-icons/fi'
+import PropertyStatusBadge from '../../components/PropertyStatusBadge'
+import { 
+  FiFileText, FiCalendar, FiHome, FiUser, FiDollarSign, FiClock, 
+  FiCheckCircle, FiAlertCircle, FiDownload, FiEye, FiEdit, FiRefreshCw, 
+  FiX, FiFilter, FiPenTool, FiExternalLink, FiMapPin, FiPhone, FiMail, 
+  FiMessageCircle 
+} from 'react-icons/fi'
 
 function Leases() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { user } = useAuthStore()
   const [leases, setLeases] = useState([])
-  const [filter, setFilter] = useState('all')
-  const [selectedLease, setSelectedLease] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [showViewModal, setShowViewModal] = useState(false)
   const [showSignModal, setShowSignModal] = useState(false)
-  const [contractHtml, setContractHtml] = useState('')
-  const [signatureStatus, setSignatureStatus] = useState(null)
+  const [selectedLease, setSelectedLease] = useState(null)
   const [signing, setSigning] = useState(false)
-  const [downloading, setDownloading] = useState(false)
+  const [downloading, setDownloading] = useState({})
   const [localSignContract, setLocalSignContract] = useState('')
   const [signatureInput, setSignatureInput] = useState('')
-  const [signingMode, setSigningMode] = useState(null) // 'docusign' or 'local'
-  const [signStep, setSignStep] = useState(1) // 1 = review contract, 2 = enter signature
+  const [signingMode, setSigningMode] = useState(null)
+  const [signStep, setSignStep] = useState(1)
+  const [syncing, setSyncing] = useState({})
 
   useEffect(() => {
     fetchLeases()
@@ -36,18 +39,17 @@ function Leases() {
       } else {
         toast.success('Signing process completed!')
       }
-      // Remove the query param
       navigate(window.location.pathname, { replace: true })
     }
   }, [user, searchParams])
 
   const syncDocuSignStatus = async (leaseId) => {
     try {
+      setSyncing(prev => ({ ...prev, [leaseId]: true }))
       toast.info('Syncing signature status...')
       const response = await leasesAPI.syncDocuSign(leaseId)
       
       if (response.data.success) {
-        // Refresh the leases list
         fetchLeases()
         
         if (response.data.docusignStatus === 'completed') {
@@ -62,6 +64,8 @@ function Leases() {
       console.error('Failed to sync DocuSign status:', error)
       toast.error('Failed to sync signing status. Please refresh the page.')
       fetchLeases()
+    } finally {
+      setSyncing(prev => ({ ...prev, [leaseId]: false }))
     }
   }
 
@@ -71,8 +75,25 @@ function Leases() {
       const response = await leasesAPI.getAll()
       const leasesData = response.data.data || []
       
-      // Check for expiring leases (within 30 days)
-      const processedLeases = leasesData.map(lease => {
+      // Fetch contracts for all leases
+      const leasesWithContracts = await Promise.all(
+        leasesData.map(async (lease) => {
+          try {
+            const contractRes = await leasesAPI.getContract(lease._id)
+            return {
+              ...lease,
+              contractHtml: contractRes.data.data.html,
+              signatureStatus: contractRes.data.data.signatureStatus
+            }
+          } catch (error) {
+            console.error(`Failed to fetch contract for lease ${lease._id}:`, error)
+            return lease
+          }
+        })
+      )
+      
+      // Process lease statuses
+      const processedLeases = leasesWithContracts.map(lease => {
         const endDate = new Date(lease.endDate)
         const today = new Date()
         const daysUntilEnd = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24))
@@ -84,7 +105,7 @@ function Leases() {
           status = 'expired'
         }
         
-        return { ...lease, displayStatus: status }
+        return { ...lease, displayStatus: status, daysRemaining: daysUntilEnd }
       })
       
       setLeases(processedLeases)
@@ -111,45 +132,19 @@ function Leases() {
     }
   }
 
-  const filteredLeases = filter === 'all' ? leases : leases.filter(l => l.displayStatus === filter)
-
-  const getDaysRemaining = (endDate) => {
-    const end = new Date(endDate)
-    const today = new Date()
-    const diff = Math.ceil((end - today) / (1000 * 60 * 60 * 24))
-    return diff
-  }
-
-  // Handle View Contract
-  const handleViewContract = async (lease) => {
+  const handleDownload = async (leaseId) => {
     try {
-      setSelectedLease(lease)
-      const response = await leasesAPI.getContract(lease._id)
-      setContractHtml(response.data.data.html)
-      setSignatureStatus(response.data.data.signatureStatus)
-      setShowViewModal(true)
-    } catch (error) {
-      console.error('Failed to load contract:', error)
-      toast.error('Failed to load contract')
-    }
-  }
-
-  // Handle Download Contract
-  const handleDownload = async (lease) => {
-    try {
-      setDownloading(true)
-      const response = await leasesAPI.download(lease._id)
+      setDownloading(prev => ({ ...prev, [leaseId]: true }))
+      const response = await leasesAPI.download(leaseId)
       
-      // Create blob from response
       const blob = new Blob([response.data], { 
         type: response.headers?.['content-type'] || 'text/html' 
       })
       
-      // Create download link
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `lease-agreement-${lease._id}.html`
+      a.download = `lease-agreement-${leaseId}.html`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -160,11 +155,10 @@ function Leases() {
       console.error('Failed to download contract:', error)
       toast.error('Failed to download contract')
     } finally {
-      setDownloading(false)
+      setDownloading(prev => ({ ...prev, [leaseId]: false }))
     }
   }
 
-  // Handle Sign Lease
   const handleSignLease = async (lease) => {
     setSelectedLease(lease)
     setSignStep(1)
@@ -174,53 +168,36 @@ function Leases() {
     setShowSignModal(true)
   }
 
-  // Initialize DocuSign or local signing
   const initiateSigning = async () => {
     if (!selectedLease) return
 
     try {
       setSigning(true)
 
-      // First check if envelope exists, if not create one
       let envelope
       try {
         const statusRes = await leasesAPI.getDocuSignStatus(selectedLease._id)
         envelope = statusRes.data.data
       } catch {
-        // Create envelope if doesn't exist
         const createRes = await leasesAPI.createEnvelope(selectedLease._id)
         envelope = createRes.data.data
         toast.info(createRes.data.message)
       }
 
       if (envelope.useLocalSigning) {
-        // Use local signing - show contract preview first
         setSigningMode('local')
-        try {
-          const contractRes = await leasesAPI.getContract(selectedLease._id)
-          setLocalSignContract(contractRes.data.data.html)
-          setSignStep(2) // Move to contract review step
-        } catch (err) {
-          toast.error('Failed to load contract for signing')
-        }
+        setLocalSignContract(selectedLease.contractHtml || '')
+        setSignStep(2)
       } else {
-        // Get DocuSign signing URL
         setSigningMode('docusign')
         const urlRes = await leasesAPI.getSigningUrl(selectedLease._id)
         if (urlRes.data.data.signingUrl) {
-          // Redirect to DocuSign
           toast.info('Redirecting to DocuSign for secure signing...')
           window.location.href = urlRes.data.data.signingUrl
         } else if (urlRes.data.data.useLocalSigning) {
-          // Fallback to local signing
           setSigningMode('local')
-          try {
-            const contractRes = await leasesAPI.getContract(selectedLease._id)
-            setLocalSignContract(contractRes.data.data.html)
-            setSignStep(2)
-          } catch (err) {
-            toast.error('Failed to load contract for signing')
-          }
+          setLocalSignContract(selectedLease.contractHtml || '')
+          setSignStep(2)
         }
       }
     } catch (error) {
@@ -231,7 +208,6 @@ function Leases() {
     }
   }
 
-  // Perform local signature
   const performLocalSign = async () => {
     if (!signatureInput.trim()) {
       toast.error('Please type your full name to sign')
@@ -257,19 +233,6 @@ function Leases() {
     }
   }
 
-  // Handle Renewal
-  const handleRenewal = async (lease) => {
-    try {
-      await leasesAPI.requestRenewal(lease._id)
-      toast.success('Renewal request submitted successfully')
-      fetchLeases()
-    } catch (error) {
-      console.error('Failed to request renewal:', error)
-      toast.error(error.response?.data?.message || 'Failed to request renewal')
-    }
-  }
-
-  // Check if current user has signed
   const hasUserSigned = (lease) => {
     if (user?.role === 'host') {
       return lease.hostSignature?.signed
@@ -278,7 +241,6 @@ function Leases() {
     }
   }
 
-  // Check if waiting for other party
   const isWaitingForOther = (lease) => {
     const userSigned = hasUserSigned(lease)
     const otherSigned = user?.role === 'host' 
@@ -296,329 +258,331 @@ function Leases() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen w-full bg-gray-50">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {user?.role === 'host' ? 'Lease Management' : 'My Leases'}
-          </h1>
-          <p className="text-gray-500 mt-1">
-            {user?.role === 'host' 
-              ? 'Manage all your property lease agreements'
-              : 'View and manage your rental agreements'
-            }
-          </p>
-        </div>
-        
-        {/* Filter Tabs */}
-        <div className="flex items-center space-x-2 bg-gray-100 p-1 rounded-lg">
-          {['all', 'active', 'pending', 'expiring', 'expired'].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition ${
-                filter === f
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-            </button>
-          ))}
-        </div>
+      <div className="px-6 md:px-8 lg:px-12 py-6 bg-white border-b border-gray-200">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {user?.role === 'host' ? 'Lease Management' : 'My Leases'}
+        </h1>
+        <p className="text-gray-500 mt-1">
+          {user?.role === 'host' 
+            ? 'Manage all your property lease agreements'
+            : 'View and manage your rental agreements'
+          }
+        </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Leases</p>
-              <p className="text-2xl font-bold text-gray-900">{leases.length}</p>
-            </div>
-            <div className="p-3 bg-primary-100 rounded-lg">
-              <FiFileText className="text-xl text-primary-600" />
-            </div>
-          </div>
+      {/* No Leases */}
+      {leases.length === 0 ? (
+        <div className="bg-white p-12 text-center min-h-screen flex flex-col items-center justify-center">
+          <FiFileText className="mx-auto text-4xl text-gray-300 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No leases found</h3>
+          <p className="text-gray-500">You don't have any lease agreements yet.</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Active</p>
-              <p className="text-2xl font-bold text-green-600">{leases.filter(l => l.status === 'active').length}</p>
+      ) : (
+        /* Leases Details */
+        leases.map((lease) => (
+          <div key={lease._id} className="bg-white shadow-sm border-b border-gray-100 last:border-b-0">
+            {/* Property Header */}
+            <div className="relative h-64 md:h-80 lg:h-96 bg-gray-200 overflow-hidden">
+              <img 
+                src={lease.property?.images?.[0]?.url || lease.property?.images?.[0] || 'https://via.placeholder.com/800x300?text=Property'} 
+                alt={lease.property?.title || 'Property'} 
+                className="w-full h-full object-cover" 
+              />
+              <div className="absolute top-6 left-6 md:left-8 lg:left-12">
+                {getStatusBadge(lease.displayStatus || lease.status)}
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-6 md:px-8 lg:px-12 py-6 md:py-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-white">{lease.property?.title || 'Property'}</h2>
+                <p className="text-white/90 flex items-center mt-1">
+                  <FiMapPin className="mr-2" />
+                  {lease.property?.address?.street}, {lease.property?.address?.city}
+                </p>
+              </div>
             </div>
-            <div className="p-3 bg-green-100 rounded-lg">
-              <FiCheckCircle className="text-xl text-green-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">{leases.filter(l => l.status === 'pending').length}</p>
-            </div>
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <FiClock className="text-xl text-yellow-600" />
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Expiring Soon</p>
-              <p className="text-2xl font-bold text-orange-600">{leases.filter(l => l.status === 'expiring').length}</p>
-            </div>
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <FiAlertCircle className="text-xl text-orange-600" />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Leases List */}
-      <div className="space-y-4">
-        {filteredLeases.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-            <FiFileText className="mx-auto text-4xl text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No leases found</h3>
-            <p className="text-gray-500">
-              {filter === 'all' 
-                ? 'You don\'t have any lease agreements yet.'
-                : `No ${filter} leases found.`
-              }
-            </p>
-          </div>
-        ) : (
-          filteredLeases.map((lease) => (
-            <div key={lease._id} className="bg-white rounded-xl border border-gray-100 hover:border-primary-200 hover:shadow-md transition overflow-hidden">
-              <div className="p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-                  {/* Property Image */}
-                  <div className="w-full lg:w-40 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                    <img 
-                      src={lease.property?.images?.[0]?.url || lease.property?.images?.[0] || 'https://via.placeholder.com/200x150?text=Property'} 
-                      alt={lease.property?.title || 'Property'} 
-                      className="w-full h-full object-cover" 
-                    />
-                  </div>
+            <div className="px-6 md:px-8 lg:px-12 xl:px-16 py-8 md:py-10 lg:py-12 space-y-8">
+              {/* Financial Summary */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="bg-primary-50 rounded-lg p-6">
+                  <p className="text-sm text-primary-600 mb-1">Monthly Rent</p>
+                  <p className="text-2xl font-bold text-primary-900">NPR {(lease.monthlyRent || 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-6">
+                  <p className="text-sm text-blue-600 mb-1">Security Deposit</p>
+                  <p className="text-2xl font-bold text-blue-900">NPR {(lease.securityDeposit || 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-6">
+                  <p className="text-sm text-green-600 mb-1">Lease Duration</p>
+                  <p className="text-2xl font-bold text-green-900">
+                    {Math.ceil((new Date(lease.endDate) - new Date(lease.startDate)) / (1000 * 60 * 60 * 24 * 30))} months
+                  </p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-6">
+                  <p className="text-sm text-orange-600 mb-1">Days Remaining</p>
+                  <p className="text-2xl font-bold text-orange-900">{lease.daysRemaining || 0}</p>
+                </div>
+              </div>
 
-                  {/* Lease Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{lease.property?.title || 'Property'}</h3>
-                          {getStatusBadge(lease.displayStatus || lease.status)}
-                        </div>
-                        <p className="text-sm text-gray-500 flex items-center">
-                          <FiHome className="mr-1" /> {lease.property?.address?.city || 'Address not available'}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-gray-900">NPR {(lease.monthlyRent || 0).toLocaleString()}</p>
-                        <p className="text-sm text-gray-500">per month</p>
-                      </div>
+              {/* Timeline */}
+              <div className="bg-gray-50 rounded-lg p-8">
+                <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+                  <FiCalendar className="mr-2" /> Lease Timeline
+                </h3>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">Start Date</p>
+                      <p className="text-xl font-medium text-gray-900">{new Date(lease.startDate).toLocaleDateString()}</p>
                     </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">End Date</p>
+                      <p className="text-xl font-medium text-gray-900">{new Date(lease.endDate).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div>
+                    <div className="flex items-center justify-between text-base mb-3">
+                      <span className="text-gray-600 font-medium">Progress</span>
+                      <span className="font-bold text-gray-900 text-lg">
+                        {Math.max(0, Math.min(100, Math.round(((new Date() - new Date(lease.startDate)) / (new Date(lease.endDate) - new Date(lease.startDate))) * 100)))}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div 
+                        className={`h-4 rounded-full transition-all ${
+                          lease.displayStatus === 'expiring' ? 'bg-gradient-to-r from-orange-500 to-red-500' :
+                          lease.displayStatus === 'active' ? 'bg-gradient-to-r from-green-500 to-blue-500' :
+                          'bg-gray-400'
+                        }`}
+                        style={{ 
+                          width: `${Math.max(0, Math.min(100, Math.round(((new Date() - new Date(lease.startDate)) / (new Date(lease.endDate) - new Date(lease.startDate))) * 100)))}%` 
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-gray-100">
+              {/* Signature Status */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className={`rounded-lg p-6 border-2 ${lease.hostSignature?.signed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Host Signature</p>
+                      <p className="font-medium text-gray-900">{lease.host?.name || 'Host'}</p>
+                    </div>
+                    {lease.hostSignature?.signed ? (
+                      <FiCheckCircle className="text-2xl text-green-600" />
+                    ) : (
+                      <FiClock className="text-2xl text-gray-400" />
+                    )}
+                  </div>
+                  {lease.hostSignature?.signed && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Signed on {new Date(lease.hostSignature.signedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                
+                <div className={`rounded-lg p-6 border-2 ${lease.tenantSignature?.signed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Tenant Signature</p>
+                      <p className="font-medium text-gray-900">{lease.tenant?.name || 'Tenant'}</p>
+                    </div>
+                    {lease.tenantSignature?.signed ? (
+                      <FiCheckCircle className="text-2xl text-green-600" />
+                    ) : (
+                      <FiClock className="text-2xl text-gray-400" />
+                    )}
+                  </div>
+                  {lease.tenantSignature?.signed && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Signed on {new Date(lease.tenantSignature.signedAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Contract Preview */}
+              {lease.contractHtml && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-100 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-900 flex items-center">
+                      <FiFileText className="mr-2" /> Lease Contract
+                    </h3>
+                    <button
+                      onClick={() => handleDownload(lease._id)}
+                      disabled={downloading[lease._id]}
+                      className="text-sm text-primary-600 hover:text-primary-700 flex items-center disabled:opacity-50"
+                    >
+                      <FiDownload className="mr-1" /> 
+                      {downloading[lease._id] ? 'Downloading...' : 'Download'}
+                    </button>
+                  </div>
+                  <div className="max-h-[400px] overflow-auto">
+                    <div className="p-4">
+                      <div 
+                        className="prose prose-sm max-w-none text-sm [&_table]:w-full [&_table]:table-auto [&_td]:break-words [&_th]:break-words"
+                        dangerouslySetInnerHTML={{ __html: lease.contractHtml }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Contact & Actions */}
+              <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Contact Card */}
+                <div className="lg:col-span-1 bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
+                    <FiUser className="mr-2" /> Contact Information
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center">
+                      <UserAvatar 
+                        name={user?.role === 'host' ? (lease.tenant?.name || 'Tenant') : (lease.host?.name || 'Landlord')} 
+                        avatar={user?.role === 'host' ? lease.tenant?.avatar : lease.host?.avatar} 
+                        size="md" 
+                        className="mr-3"
+                      />
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">
+                        <p className="font-medium text-gray-900">
+                          {user?.role === 'host' ? (lease.tenant?.name || 'Tenant') : (lease.host?.name || 'Landlord')}
+                        </p>
+                        <p className="text-sm text-gray-500">
                           {user?.role === 'host' ? 'Tenant' : 'Landlord'}
                         </p>
-                        <div className="flex items-center">
-                          <UserAvatar 
-                            name={user?.role === 'host' ? (lease.tenant?.name || 'Tenant') : (lease.host?.name || 'Landlord')} 
-                            avatar={user?.role === 'host' ? lease.tenant?.avatar : lease.host?.avatar} 
-                            size="xs" 
-                            className="mr-2"
-                          />
-                          <span className="text-sm font-medium text-gray-900">
-                            {user?.role === 'host' 
-                              ? (lease.tenant?.name || 'Tenant') 
-                              : (lease.host?.name || 'Landlord')}
-                          </span>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Start Date</p>
-                        <p className="text-sm font-medium text-gray-900 flex items-center">
-                          <FiCalendar className="mr-1 text-gray-400" />
-                          {new Date(lease.startDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">End Date</p>
-                        <p className="text-sm font-medium text-gray-900 flex items-center">
-                          <FiCalendar className="mr-1 text-gray-400" />
-                          {new Date(lease.endDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">Security Deposit</p>
-                        <p className="text-sm font-medium text-gray-900">
-                          NPR {(lease.securityDeposit || 0).toLocaleString()}
-                        </p>
                       </div>
                     </div>
-
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-4">
-                      <div className="flex items-center gap-4">
-                        {lease.displayStatus === 'expiring' && (
-                          <p className="text-sm text-orange-600 flex items-center">
-                            <FiAlertCircle className="mr-1" />
-                            Expires in {getDaysRemaining(lease.endDate)} days
-                          </p>
+                    
+                    {(user?.role === 'tenant' ? lease.host : lease.tenant) && (
+                      <div className="space-y-2">
+                        {(user?.role === 'tenant' ? lease.host?.email : lease.tenant?.email) && (
+                          <a 
+                            href={`mailto:${user?.role === 'tenant' ? lease.host.email : lease.tenant.email}`}
+                            className="flex items-center text-sm text-gray-600 hover:text-primary-600"
+                          >
+                            <FiMail className="mr-2" /> 
+                            {user?.role === 'tenant' ? lease.host.email : lease.tenant.email}
+                          </a>
                         )}
-                        {lease.displayStatus === 'active' && (
-                          <p className="text-sm text-green-600 flex items-center">
-                            <FiCheckCircle className="mr-1" />
-                            {getDaysRemaining(lease.endDate)} days remaining
-                          </p>
-                        )}
-                        {lease.status === 'pending' && (
-                          <div className="text-sm text-yellow-600">
-                            {lease.hostSignature?.signed && !lease.tenantSignature?.signed && (
-                              <span className="flex items-center"><FiClock className="mr-1" /> Waiting for tenant signature</span>
-                            )}
-                            {!lease.hostSignature?.signed && lease.tenantSignature?.signed && (
-                              <span className="flex items-center"><FiClock className="mr-1" /> Waiting for host signature</span>
-                            )}
-                            {!lease.hostSignature?.signed && !lease.tenantSignature?.signed && (
-                              <span className="flex items-center"><FiClock className="mr-1" /> Awaiting signatures</span>
-                            )}
-                          </div>
+                        {(user?.role === 'tenant' ? lease.host?.phone : lease.tenant?.phone) && (
+                          <a 
+                            href={`tel:${user?.role === 'tenant' ? lease.host.phone : lease.tenant.phone}`}
+                            className="flex items-center text-sm text-gray-600 hover:text-primary-600"
+                          >
+                            <FiPhone className="mr-2" /> 
+                            {user?.role === 'tenant' ? lease.host.phone : lease.tenant.phone}
+                          </a>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                    )}
+                    
+                    <button
+                      onClick={() => navigate(`/dashboard/messages?userId=${user?.role === 'host' ? lease.tenant?._id : lease.host?._id}`)}
+                      className="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center justify-center"
+                    >
+                      <FiMessageCircle className="mr-2" /> Send Message
+                    </button>
+                  </div>
+                </div>
+
+                {/* Actions & Summary */}
+                <div className="lg:col-span-2 space-y-4">
+                  {/* Quick Actions */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {lease.status === 'pending' && !hasUserSigned(lease) && (
                         <button 
-                          onClick={() => navigate(`/dashboard/leases/${lease._id}`)}
-                          className="px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition flex items-center"
+                          onClick={() => handleSignLease(lease)}
+                          className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition flex items-center text-sm"
                         >
-                          <FiEye className="mr-2" /> Details
+                          <FiPenTool className="mr-2" /> Sign Lease
                         </button>
-                        <button 
-                          onClick={() => handleDownload(lease)}
-                          disabled={downloading}
-                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition flex items-center disabled:opacity-50"
-                        >
-                          <FiDownload className="mr-2" /> {downloading ? 'Downloading...' : 'Download'}
-                        </button>
-                        <button 
-                          onClick={() => handleViewContract(lease)}
-                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition flex items-center"
-                        >
-                          <FiFileText className="mr-2" /> Contract
-                        </button>
-                        {lease.displayStatus === 'expiring' && !lease.renewalRequested && (
-                          <button 
-                            onClick={() => handleRenewal(lease)}
-                            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition flex items-center"
-                          >
-                            <FiRefreshCw className="mr-2" /> Renew
-                          </button>
-                        )}
-                        {lease.renewalRequested && (
-                          <span className="px-4 py-2 text-sm font-medium text-purple-600 bg-purple-100 rounded-lg flex items-center">
-                            <FiRefreshCw className="mr-2" /> Renewal Requested
-                          </span>
-                        )}
-                        {lease.status === 'pending' && !hasUserSigned(lease) && (
-                          <button 
-                            onClick={() => handleSignLease(lease)}
-                            className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition flex items-center"
-                          >
-                            <FiPenTool className="mr-2" /> Sign Lease
-                          </button>
-                        )}
-                        {lease.status === 'pending' && isWaitingForOther(lease) && (
-                          <span className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-100 rounded-lg flex items-center">
+                      )}
+                      {lease.status === 'pending' && isWaitingForOther(lease) && (
+                        <>
+                          <span className="px-4 py-2 text-blue-600 bg-blue-100 rounded-lg flex items-center text-sm">
                             <FiCheckCircle className="mr-2" /> You've Signed
                           </span>
-                        )}
+                          <button
+                            onClick={() => syncDocuSignStatus(lease._id)}
+                            disabled={syncing[lease._id]}
+                            className="px-4 py-2 text-primary-600 bg-primary-50 rounded-lg hover:bg-primary-100 transition flex items-center text-sm disabled:opacity-50"
+                          >
+                            <FiRefreshCw className={`mr-2 ${syncing[lease._id] ? 'animate-spin' : ''}`} /> 
+                            {syncing[lease._id] ? 'Syncing...' : 'Sync Status'}
+                          </button>
+                        </>
+                      )}
+                      {lease.displayStatus === 'expiring' && !lease.renewalRequested && (
+                        <button 
+                          onClick={async () => {
+                            try {
+                              await leasesAPI.requestRenewal(lease._id)
+                              toast.success('Renewal request submitted successfully')
+                              fetchLeases()
+                            } catch (error) {
+                              toast.error(error.response?.data?.message || 'Failed to request renewal')
+                            }
+                          }}
+                          className="px-4 py-2 text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition flex items-center text-sm"
+                        >
+                          <FiRefreshCw className="mr-2" /> Request Renewal
+                        </button>
+                      )}
+                      {lease.renewalRequested && (
+                        <span className="px-4 py-2 text-purple-600 bg-purple-100 rounded-lg flex items-center text-sm">
+                          <FiRefreshCw className="mr-2" /> Renewal Requested
+                        </span>
+                      )}
+                      <button 
+                        onClick={() => navigate('/dashboard/payments')}
+                        className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center text-sm"
+                      >
+                        <FiDollarSign className="mr-2" /> View Payments
+                      </button>
+                      <button 
+                        onClick={() => navigate('/dashboard/maintenance')}
+                        className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center text-sm"
+                      >
+                        <FiEdit className="mr-2" /> Maintenance
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Lease Summary */}
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h3 className="font-semibold text-blue-900 mb-3">Lease Summary</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-blue-600 mb-1">Lease Type</p>
+                        <p className="text-blue-900 font-medium capitalize">{lease.property?.type || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-blue-600 mb-1">Payment Frequency</p>
+                        <p className="text-blue-900 font-medium">Monthly</p>
+                      </div>
+                      <div>
+                        <p className="text-blue-600 mb-1">Lease ID</p>
+                        <p className="text-blue-900 font-mono text-xs">{lease._id}</p>
+                      </div>
+                      <div>
+                        <p className="text-blue-600 mb-1">Created On</p>
+                        <p className="text-blue-900 font-medium">{new Date(lease.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
-
-      {/* View Contract Modal */}
-      {showViewModal && selectedLease && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-gray-900">Lease Agreement</h3>
-              <button 
-                onClick={() => setShowViewModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-              >
-                <FiX className="text-xl" />
-              </button>
-            </div>
-            
-            {/* Signature Status Bar */}
-            {signatureStatus && (
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full ${signatureStatus.hostSigned ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                    <span className="text-sm">
-                      Host: {signatureStatus.hostSigned 
-                        ? `Signed on ${new Date(signatureStatus.hostSignedAt).toLocaleDateString()}` 
-                        : 'Not signed'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full ${signatureStatus.tenantSigned ? 'bg-green-500' : 'bg-gray-300'}`}></span>
-                    <span className="text-sm">
-                      Tenant: {signatureStatus.tenantSigned 
-                        ? `Signed on ${new Date(signatureStatus.tenantSignedAt).toLocaleDateString()}` 
-                        : 'Not signed'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div className="flex-1 overflow-auto p-4">
-              <div 
-                className="prose max-w-none"
-                dangerouslySetInnerHTML={{ __html: contractHtml }}
-              />
-            </div>
-            
-            <div className="p-4 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => handleDownload(selectedLease)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition flex items-center"
-              >
-                <FiDownload className="mr-2" /> Download
-              </button>
-              {selectedLease.status === 'pending' && !hasUserSigned(selectedLease) && (
-                <button
-                  onClick={() => {
-                    setShowViewModal(false)
-                    handleSignLease(selectedLease)
-                  }}
-                  className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition flex items-center"
-                >
-                  <FiPenTool className="mr-2" /> Sign This Lease
-                </button>
-              )}
-              <button
-                onClick={() => setShowViewModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
-              >
-                Close
-              </button>
-            </div>
           </div>
-        </div>
+        ))
       )}
 
       {/* Sign Lease Modal */}
@@ -645,7 +609,6 @@ function Leases() {
               </button>
             </div>
 
-            {/* Step 1: Initial Info */}
             {signStep === 1 && (
               <>
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -699,10 +662,8 @@ function Leases() {
               </>
             )}
 
-            {/* Step 2: Contract Review & Signature (for local signing) */}
             {signStep === 2 && signingMode === 'local' && (
               <>
-                {/* Contract Preview */}
                 <div className="flex-1 overflow-auto border border-gray-200 rounded-lg mb-6 max-h-[400px]">
                   <div 
                     className="p-4 prose max-w-none text-sm"
@@ -710,7 +671,6 @@ function Leases() {
                   />
                 </div>
 
-                {/* Signature Input */}
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
                   <label className="block text-sm font-medium text-yellow-800 mb-2">
                     Type your full name to sign this lease agreement:
@@ -720,7 +680,7 @@ function Leases() {
                     value={signatureInput}
                     onChange={(e) => setSignatureInput(e.target.value)}
                     placeholder={user?.name || 'Your full legal name'}
-                    className="w-full px-4 py-3 border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none font-signature text-lg"
+                    className="w-full px-4 py-3 border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none text-lg"
                   />
                   <p className="text-xs text-yellow-700 mt-2">
                     By typing your name and clicking "Complete Signature", you acknowledge that this electronic signature is legally binding.
@@ -756,7 +716,6 @@ function Leases() {
                 Cancel
               </button>
               
-              {/* Step 1: Start Signing Process */}
               {signStep === 1 && (
                 <button
                   onClick={initiateSigning}
@@ -776,7 +735,6 @@ function Leases() {
                 </button>
               )}
               
-              {/* Step 2: Complete Local Signature */}
               {signStep === 2 && signingMode === 'local' && (
                 <button
                   onClick={performLocalSign}

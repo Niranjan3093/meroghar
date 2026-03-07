@@ -1,6 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import { protect } from '../middleware/authMiddleware.js';
+import { upload } from '../middleware/uploadMiddleware.js';
 import Maintenance from '../models/Maintenance.js';
 import Property from '../models/Property.js';
 import Lease from '../models/Lease.js';
@@ -38,7 +39,7 @@ router.get('/', protect, async (req, res) => {
 });
 
 // Create maintenance request
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, upload.array('images', 5), async (req, res) => {
   try {
     const { title, description, category, priority, property } = req.body;
     
@@ -56,6 +57,12 @@ router.post('/', protect, async (req, res) => {
       });
     }
     
+    // Handle uploaded images
+    const images = req.files ? req.files.map(file => ({
+      url: file.path,
+      public_id: file.filename
+    })) : [];
+    
     const maintenance = await Maintenance.create({
       property,
       lease: lease?._id,
@@ -63,7 +70,8 @@ router.post('/', protect, async (req, res) => {
       title,
       description,
       category,
-      priority
+      priority,
+      images
     });
     
     const populated = await Maintenance.findById(maintenance._id)
@@ -113,9 +121,9 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // Update maintenance request (for hosts to update status)
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, upload.array('resolutionImages', 5), async (req, res) => {
   try {
-    const { status, assignedTo, resolutionNotes } = req.body;
+    const { status, assignedTo, resolutionNotes, notes, estimatedCost, actualCost } = req.body;
     
     const maintenance = await Maintenance.findById(req.params.id);
     
@@ -135,6 +143,18 @@ router.put('/:id', protect, async (req, res) => {
     }
     if (assignedTo) maintenance.assignedTo = assignedTo;
     if (resolutionNotes) maintenance.resolutionNotes = resolutionNotes;
+    if (notes) maintenance.notes = notes;
+    if (estimatedCost) maintenance.estimatedCost = estimatedCost;
+    if (actualCost) maintenance.actualCost = actualCost;
+    
+    // Handle resolution images
+    if (req.files && req.files.length > 0) {
+      const resolutionImages = req.files.map(file => ({
+        url: file.path,
+        public_id: file.filename
+      }));
+      maintenance.resolutionImages = [...(maintenance.resolutionImages || []), ...resolutionImages];
+    }
     
     await maintenance.save();
     
@@ -155,7 +175,7 @@ router.put('/:id', protect, async (req, res) => {
         maintenanceId: maintenance._id,
         propertyId: updated.property._id
       });
-    } else if (status && status !== maintenance.status) {
+    } else if (status) {
       await notifyMaintenanceUpdate(io, {
         tenantId: updated.reportedBy._id,
         hostId: req.user._id,

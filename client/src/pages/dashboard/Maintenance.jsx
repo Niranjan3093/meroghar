@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/authStore'
 import { maintenanceAPI, leasesAPI } from '../../utils/api'
 import { toast } from 'react-toastify'
 import UserAvatar from '../../components/UserAvatar'
-import { FiTool, FiPlus, FiClock, FiCheckCircle, FiAlertCircle, FiMessageSquare, FiImage, FiCalendar, FiUser, FiHome, FiFilter, FiX } from 'react-icons/fi'
+import { FiTool, FiPlus, FiClock, FiCheckCircle, FiAlertCircle, FiMessageSquare, FiImage, FiCalendar, FiUser, FiHome, FiFilter, FiX, FiUpload, FiTrash2 } from 'react-icons/fi'
 
 function Maintenance() {
   const { user } = useAuthStore()
@@ -11,14 +11,26 @@ function Maintenance() {
   const [userProperties, setUserProperties] = useState([])
   const [filter, setFilter] = useState('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showUpdateModal, setShowUpdateModal] = useState(false)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [selectedRequest, setSelectedRequest] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null)
+  const [selectedImages, setSelectedImages] = useState([])
+  const [imagePreviewUrls, setImagePreviewUrls] = useState([])
   const [newRequest, setNewRequest] = useState({
     title: '',
     category: 'plumbing',
     priority: 'medium',
     description: '',
     property: ''
+  })
+  const [updateData, setUpdateData] = useState({
+    status: '',
+    notes: '',
+    estimatedCost: '',
+    actualCost: ''
   })
 
   useEffect(() => {
@@ -86,6 +98,53 @@ function Maintenance() {
 
   const filteredRequests = filter === 'all' ? requests : requests.filter(r => r.status === filter)
 
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length + selectedImages.length > 5) {
+      toast.error('You can upload a maximum of 5 images')
+      return
+    }
+    
+    // Validate file size and type
+    const validFiles = files.filter(file => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Max size is 5MB`)
+        return false
+      }
+      if (!['image/jpeg', 'image/jpg', 'image/png'].includes(file.type)) {
+        toast.error(`${file.name} is not a valid image format`)
+        return false
+      }
+      return true
+    })
+    
+    setSelectedImages([...selectedImages, ...validFiles])
+    
+    // Create preview URLs
+    const newPreviewUrls = validFiles.map(file => URL.createObjectURL(file))
+    setImagePreviewUrls([...imagePreviewUrls, ...newPreviewUrls])
+  }
+
+  const handleRemoveImage = (index) => {
+    const newImages = selectedImages.filter((_, i) => i !== index)
+    const newPreviews = imagePreviewUrls.filter((_, i) => i !== index)
+    
+    // Revoke the URL to free memory
+    URL.revokeObjectURL(imagePreviewUrls[index])
+    
+    setSelectedImages(newImages)
+    setImagePreviewUrls(newPreviews)
+  }
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false)
+    setNewRequest({ title: '', category: 'plumbing', priority: 'medium', description: '', property: '' })
+    // Clean up image previews
+    imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
+    setSelectedImages([])
+    setImagePreviewUrls([])
+  }
+
   const handleCreateRequest = async (e) => {
     e.preventDefault()
     // Validate
@@ -103,16 +162,23 @@ function Maintenance() {
     }
     try {
       setSubmitting(true)
-      await maintenanceAPI.create({
-        title: newRequest.title,
-        category: newRequest.category,
-        priority: newRequest.priority,
-        description: newRequest.description,
-        property: newRequest.property
+      
+      // Create FormData for multipart upload
+      const formData = new FormData()
+      formData.append('title', newRequest.title)
+      formData.append('category', newRequest.category)
+      formData.append('priority', newRequest.priority)
+      formData.append('description', newRequest.description)
+      formData.append('property', newRequest.property)
+      
+      // Append images
+      selectedImages.forEach(image => {
+        formData.append('images', image)
       })
+      
+      await maintenanceAPI.create(formData)
       toast.success('Maintenance request submitted successfully!')
-      setShowCreateModal(false)
-      setNewRequest({ title: '', category: 'plumbing', priority: 'medium', description: '', property: '' })
+      closeCreateModal()
       fetchMaintenanceRequests() // Refresh the list
     } catch (error) {
       console.error('Failed to create maintenance request:', error)
@@ -120,6 +186,78 @@ function Maintenance() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleUpdateStatus = async (e) => {
+    e.preventDefault()
+    try {
+      setSubmitting(true)
+      const payload = {
+        status: updateData.status,
+        notes: updateData.notes
+      }
+      
+      // Add cost fields if they have values
+      if (updateData.estimatedCost) {
+        payload.estimatedCost = parseFloat(updateData.estimatedCost)
+      }
+      if (updateData.actualCost) {
+        payload.actualCost = parseFloat(updateData.actualCost)
+      }
+      
+      // If marking as resolved, send as resolutionNotes
+      if (updateData.status === 'resolved') {
+        payload.resolutionNotes = updateData.notes
+      }
+      
+      await maintenanceAPI.update(selectedRequest._id, payload)
+      toast.success('Maintenance status updated successfully!')
+      setShowUpdateModal(false)
+      setSelectedRequest(null)
+      setUpdateData({ status: '', notes: '', estimatedCost: '', actualCost: '' })
+      fetchMaintenanceRequests()
+    } catch (error) {
+      console.error('Failed to update maintenance:', error)
+      toast.error(error.response?.data?.message || 'Failed to update maintenance')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openUpdateModal = (request, newStatus) => {
+    setSelectedRequest(request)
+    setUpdateData({
+      status: newStatus,
+      notes: '',
+      estimatedCost: request.estimatedCost || '',
+      actualCost: request.actualCost || ''
+    })
+    setShowUpdateModal(true)
+  }
+
+  const openDetailsModal = (request) => {
+    console.log('Opening details for:', request)
+    setSelectedRequest(request)
+    setShowDetailsModal(true)
+  }
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false)
+    setSelectedRequest(null)
+    setSelectedImageIndex(null)
+  }
+
+  const formatAddress = (address) => {
+    if (!address) return ''
+    if (typeof address === 'string') return address
+    // If address is an object, format it
+    const parts = []
+    if (address.street) parts.push(address.street)
+    if (address.city) parts.push(address.city)
+    if (address.state) parts.push(address.state)
+    if (address.zipCode) parts.push(address.zipCode)
+    if (address.country) parts.push(address.country)
+    return parts.join(', ')
   }
 
   if (loading) {
@@ -276,6 +414,33 @@ function Maintenance() {
                         <span className="text-xs text-gray-500">{request.images.length} attachment(s)</span>
                       </div>
                     )}
+
+                    {/* Status Updates / Notes */}
+                    {(request.notes || request.resolutionNotes) && (
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div className="flex items-start">
+                          <FiMessageSquare className="text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-blue-800 mb-1">
+                              {request.status === 'resolved' ? 'Resolution Notes' : 'Progress Update'}
+                            </p>
+                            <p className="text-sm text-blue-900">
+                              {request.resolutionNotes || request.notes}
+                            </p>
+                            {(request.estimatedCost || request.actualCost) && (
+                              <div className="mt-2 flex gap-4 text-xs text-blue-700">
+                                {request.estimatedCost && (
+                                  <span>Estimated: ${parseFloat(request.estimatedCost).toFixed(2)}</span>
+                                )}
+                                {request.actualCost && (
+                                  <span>Actual: ${parseFloat(request.actualCost).toFixed(2)}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Sidebar Info */}
@@ -296,7 +461,10 @@ function Maintenance() {
                     )}
 
                     <div className="flex items-center justify-between">
-                      <button className="flex items-center text-sm text-gray-600 hover:text-primary-600 transition">
+                      <button 
+                        onClick={() => openDetailsModal(request)}
+                        className="flex items-center text-sm text-gray-600 hover:text-primary-600 transition"
+                      >
                         <FiMessageSquare className="mr-1" /> View Details
                       </button>
                     </div>
@@ -305,20 +473,35 @@ function Maintenance() {
 
                 {/* Actions */}
                 <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-gray-100">
-                  <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                  <button 
+                    onClick={() => openDetailsModal(request)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                  >
                     View Details
                   </button>
                   {user?.role === 'host' && request.status === 'pending' && (
-                    <>
-                      <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition">
-                        Start Progress
-                      </button>
-                    </>
+                    <button
+                      onClick={() => openUpdateModal(request, 'in-progress')}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Start Progress
+                    </button>
                   )}
                   {user?.role === 'host' && request.status === 'in-progress' && (
-                    <button className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition">
-                      Mark Complete
-                    </button>
+                    <>
+                      <button
+                        onClick={() => openUpdateModal(request, 'in-progress')}
+                        className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition"
+                      >
+                        Update Progress
+                      </button>
+                      <button
+                        onClick={() => openUpdateModal(request, 'resolved')}
+                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition"
+                      >
+                        Mark Complete
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -334,7 +517,7 @@ function Maintenance() {
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">New Maintenance Request</h2>
-                <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <button onClick={closeCreateModal} className="p-2 hover:bg-gray-100 rounded-lg">
                   <FiX />
                 </button>
               </div>
@@ -413,16 +596,49 @@ function Maintenance() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Attachments</label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition cursor-pointer">
-                  <FiImage className="mx-auto text-3xl text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-500">Click to upload images</p>
-                  <p className="text-xs text-gray-400">PNG, JPG up to 5MB</p>
+                <div className="space-y-3">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary-500 transition cursor-pointer">
+                    <input
+                      type="file"
+                      id="image-upload"
+                      multiple
+                      accept="image/jpeg,image/jpg,image/png"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                    <label htmlFor="image-upload" className="cursor-pointer">
+                      <FiUpload className="mx-auto text-3xl text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-500">Click to upload images</p>
+                      <p className="text-xs text-gray-400">PNG, JPG up to 5MB (max 5 images)</p>
+                    </label>
+                  </div>
+                  
+                  {imagePreviewUrls.length > 0 && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {imagePreviewUrls.map((url, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={url}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button 
                   type="button" 
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={closeCreateModal}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
                   disabled={submitting}
                 >
@@ -433,6 +649,395 @@ function Maintenance() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Update Status Modal */}
+      {showUpdateModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {updateData.status === 'in-progress' ? 'Update Maintenance Progress' : 'Complete Maintenance'}
+                </h2>
+                <button onClick={() => setShowUpdateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                  <FiX />
+                </button>
+              </div>
+            </div>
+            <form onSubmit={handleUpdateStatus} className="p-6 space-y-4">
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h3 className="font-medium text-gray-900 mb-1">{selectedRequest.title}</h3>
+                <p className="text-sm text-gray-600">{selectedRequest.description}</p>
+              </div>
+
+              {updateData.status === 'in-progress' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status Update</label>
+                  <select
+                    value={updateData.status}
+                    onChange={(e) => setUpdateData({...updateData, status: e.target.value})}
+                    className="input-field"
+                  >
+                    <option value="in-progress">In Progress</option>
+                    <option value="resolved">Mark as Resolved</option>
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {updateData.status === 'resolved' ? 'Resolution Notes' : 'Progress Notes'}
+                </label>
+                <textarea
+                  value={updateData.notes}
+                  onChange={(e) => setUpdateData({...updateData, notes: e.target.value})}
+                  className="input-field"
+                  rows={4}
+                  placeholder={updateData.status === 'resolved' 
+                    ? 'Describe how the issue was resolved...'
+                    : 'Update on the current progress...'
+                  }
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Cost ($)</label>
+                  <input
+                    type="number"
+                    value={updateData.estimatedCost}
+                    onChange={(e) => setUpdateData({...updateData, estimatedCost: e.target.value})}
+                    className="input-field"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                {updateData.status === 'resolved' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Actual Cost ($)</label>
+                    <input
+                      type="number"
+                      value={updateData.actualCost}
+                      onChange={(e) => setUpdateData({...updateData, actualCost: e.target.value})}
+                      className="input-field"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowUpdateModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition ${
+                    updateData.status === 'resolved' 
+                      ? 'bg-green-600 hover:bg-green-700' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                  disabled={submitting}
+                >
+                  {submitting ? 'Updating...' : updateData.status === 'resolved' ? 'Mark as Complete' : 'Update Status'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+          <div className="min-h-screen px-4 py-8 flex items-center justify-center">
+            <div className="bg-white rounded-xl max-w-4xl w-full shadow-2xl">
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-gray-200 flex items-start justify-between">
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-1">{selectedRequest.title || 'Maintenance Request'}</h2>
+                  <p className="text-sm text-gray-500">Request ID: {selectedRequest._id?.slice(-8) || 'N/A'}</p>
+                </div>
+                <button 
+                  onClick={closeDetailsModal} 
+                  className="ml-4 p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                  type="button"
+                >
+                  <FiX className="text-xl text-gray-600" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+                <div className="space-y-6">
+                  {/* Status & Priority */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    {getStatusBadge(selectedRequest.status)}
+                    {getPriorityBadge(selectedRequest.priority)}
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                      {selectedRequest.category?.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Other'}
+                    </span>
+                  </div>
+
+                  {/* Property & Dates */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center text-sm text-gray-500 mb-2">
+                        <FiHome className="mr-2" />
+                        <span>Property</span>
+                      </div>
+                      <p className="font-medium text-gray-900">{selectedRequest.property?.title || 'N/A'}</p>
+                      {selectedRequest.property?.address && (
+                        <p className="text-sm text-gray-600 mt-1">{formatAddress(selectedRequest.property.address)}</p>
+                      )}
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center text-sm text-gray-500 mb-2">
+                        <FiCalendar className="mr-2" />
+                        <span>Submission Date</span>
+                      </div>
+                      <p className="font-medium text-gray-900">
+                        {new Date(selectedRequest.reportedAt || selectedRequest.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Submitted By */}
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center text-sm text-gray-500 mb-3">
+                      <FiUser className="mr-2" />
+                      <span>Submitted By</span>
+                    </div>
+                    <div className="flex items-center">
+                      <UserAvatar 
+                        name={selectedRequest.reportedBy?.name || 'User'} 
+                        avatar={selectedRequest.reportedBy?.avatar} 
+                        size="md" 
+                        className="mr-3"
+                      />
+                      <div>
+                        <p className="font-medium text-gray-900">{selectedRequest.reportedBy?.name || 'User'}</p>
+                        {selectedRequest.reportedBy?.email && (
+                          <p className="text-sm text-gray-600">{selectedRequest.reportedBy.email}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Description</h3>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <p className="text-gray-700 whitespace-pre-wrap">{selectedRequest.description || 'No description provided'}</p>
+                    </div>
+                  </div>
+
+                  {/* Images Gallery */}
+                  {selectedRequest.images && selectedRequest.images.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                        <FiImage className="mr-2" />
+                        <span>Attachments ({selectedRequest.images.length})</span>
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {selectedRequest.images.map((img, idx) => (
+                          <div 
+                            key={idx} 
+                            className="relative group cursor-pointer rounded-lg overflow-hidden border-2 border-gray-200 hover:border-primary-500 transition-all aspect-square"
+                            onClick={() => setSelectedImageIndex(idx)}
+                          >
+                            <img
+                              src={img.url || img}
+                              alt={`Attachment ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null
+                                e.target.src = 'https://via.placeholder.com/300?text=Image+Not+Found'
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                              <span className="text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                View Full
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cost Information */}
+                  {(selectedRequest.estimatedCost || selectedRequest.actualCost) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 mb-3">Cost Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {selectedRequest.estimatedCost && (
+                          <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <p className="text-xs text-blue-600 font-medium mb-1">Estimated Cost</p>
+                            <p className="text-2xl font-bold text-blue-900">
+                              ${parseFloat(selectedRequest.estimatedCost).toFixed(2)}
+                            </p>
+                          </div>
+                        )}
+                        {selectedRequest.actualCost && (
+                          <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                            <p className="text-xs text-green-600 font-medium mb-1">Actual Cost</p>
+                            <p className="text-2xl font-bold text-green-900">
+                              ${parseFloat(selectedRequest.actualCost).toFixed(2)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Progress Updates / Notes */}
+                  {(selectedRequest.notes || selectedRequest.resolutionNotes) && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                        <FiMessageSquare className="mr-2" />
+                        <span>{selectedRequest.status === 'resolved' ? 'Resolution Notes' : 'Progress Updates'}</span>
+                      </h3>
+                      <div className={`p-4 rounded-lg border ${
+                        selectedRequest.status === 'resolved' 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'bg-blue-50 border-blue-200'
+                      }`}>
+                        <p className="text-gray-800 whitespace-pre-wrap">
+                          {selectedRequest.resolutionNotes || selectedRequest.notes}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Resolution Details */}
+                  {selectedRequest.status === 'resolved' && selectedRequest.resolvedAt && (
+                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center mb-2">
+                        <FiCheckCircle className="text-green-600 mr-2" />
+                        <span className="font-semibold text-green-900">Completed on</span>
+                      </div>
+                      <p className="text-green-800">
+                        {new Date(selectedRequest.resolvedAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                {user?.role === 'host' && selectedRequest.status === 'pending' && (
+                  <button
+                    onClick={() => {
+                      closeDetailsModal()
+                      openUpdateModal(selectedRequest, 'in-progress')
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    type="button"
+                  >
+                    Start Progress
+                  </button>
+                )}
+                {user?.role === 'host' && selectedRequest.status === 'in-progress' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        closeDetailsModal()
+                        openUpdateModal(selectedRequest, 'in-progress')
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
+                      type="button"
+                    >
+                      Update Progress
+                    </button>
+                    <button
+                      onClick={() => {
+                        closeDetailsModal()
+                        openUpdateModal(selectedRequest, 'resolved')
+                      }}
+                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                      type="button"
+                    >
+                      Mark Complete
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {selectedImageIndex !== null && selectedRequest?.images && selectedRequest.images[selectedImageIndex] && (
+        <div className="fixed inset-0 bg-black bg-opacity-95 z-[60] flex items-center justify-center p-4">
+          <button
+            onClick={() => setSelectedImageIndex(null)}
+            className="absolute top-4 right-4 p-3 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors z-10"
+            type="button"
+          >
+            <FiX className="text-2xl" />
+          </button>
+          
+          {selectedRequest.images.length > 1 && (
+            <>
+              <button
+                onClick={() => setSelectedImageIndex((selectedImageIndex - 1 + selectedRequest.images.length) % selectedRequest.images.length)}
+                className="absolute left-4 p-3 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors text-3xl font-bold z-10"
+                type="button"
+              >
+                ‹
+              </button>
+              
+              <button
+                onClick={() => setSelectedImageIndex((selectedImageIndex + 1) % selectedRequest.images.length)}
+                className="absolute right-4 p-3 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors text-3xl font-bold z-10"
+                type="button"
+              >
+                ›
+              </button>
+            </>
+          )}
+          
+          <div className="max-w-6xl max-h-[90vh] w-full h-full flex items-center justify-center">
+            <img
+              src={selectedRequest.images[selectedImageIndex].url || selectedRequest.images[selectedImageIndex]}
+              alt={`Full size ${selectedImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                e.target.onerror = null
+                e.target.src = 'https://via.placeholder.com/800?text=Image+Not+Found'
+              }}
+            />
+          </div>
+          
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black bg-opacity-60 px-4 py-2 rounded-full">
+            {selectedImageIndex + 1} / {selectedRequest.images.length}
           </div>
         </div>
       )}
