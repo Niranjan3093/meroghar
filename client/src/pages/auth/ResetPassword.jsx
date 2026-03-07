@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { authAPI } from '../../utils/api'
+import { useAppSettingsStore } from '../../store/appSettingsStore'
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowLeft, FiCheck } from 'react-icons/fi'
 
 function ResetPassword() {
@@ -11,6 +12,7 @@ function ResetPassword() {
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState(null)
   const [codeVerified, setCodeVerified] = useState(false)
+  const { settings } = useAppSettingsStore()
   const navigate = useNavigate()
   const location = useLocation()
   const { register, handleSubmit, watch, formState: { errors }, trigger, getValues } = useForm({
@@ -82,7 +84,7 @@ function ResetPassword() {
           <div className="mb-6 flex justify-center">
             <img 
               src="/assets/app_logo.png" 
-              alt="MeroGhar Logo" 
+              alt={`${settings.platformName} Logo`} 
               className="h-24 w-auto object-contain"
             />
           </div>

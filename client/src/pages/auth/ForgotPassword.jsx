@@ -3,12 +3,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { authAPI } from '../../utils/api'
+import { useAppSettingsStore } from '../../store/appSettingsStore'
 import { FiMail, FiArrowLeft } from 'react-icons/fi'
 
 function ForgotPassword() {
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState(null)
   const [emailSent, setEmailSent] = useState(false)
+  const { settings } = useAppSettingsStore()
   const navigate = useNavigate()
   const { register, handleSubmit, watch, formState: { errors }, reset } = useForm()
   const emailValue = watch('email')
@@ -39,7 +41,7 @@ function ForgotPassword() {
           <div className="mb-6 flex justify-center">
             <img 
               src="/assets/app_logo.png" 
-              alt="MeroGhar Logo" 
+              alt={`${settings.platformName} Logo`} 
               className="h-24 w-auto object-contain"
             />
           </div>

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { getAppSettings } from '../utils/appSettings.js';
 
 export const protect = async (req, res, next) => {
   if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer')) {
@@ -28,7 +29,9 @@ export const protect = async (req, res, next) => {
       return next(new Error('Account is inactive'));
     }
 
-    if (!req.user.isVerified) {
+    const settings = await getAppSettings();
+
+    if (settings.requireEmailVerification && !req.user.isVerified) {
       res.status(401);
       return next(new Error('Please verify your account'));
     }

@@ -1,9 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { FiSearch, FiHome, FiUsers, FiShield, FiMapPin, FiTrendingUp, FiAward, FiKey, FiUser, FiList, FiMessageCircle, FiCheckCircle, FiFileText, FiCreditCard, FiTool, FiBarChart2, FiClock, FiArrowRight } from 'react-icons/fi'
 import { useState } from 'react'
+import { useAppSettingsStore } from '../store/appSettingsStore'
 
 function Home() {
   const navigate = useNavigate()
+  const { settings } = useAppSettingsStore()
   const [searchInput, setSearchInput] = useState('')
   const [hoveredCard, setHoveredCard] = useState(null)
   const [activeStep, setActiveStep] = useState(null)
@@ -120,7 +122,7 @@ function Home() {
                 Find Your Perfect <span className="bg-gradient-to-r from-accent-300 via-accent-200 to-yellow-200 bg-clip-text text-transparent animate-pulse">Rental Home</span>
               </h1>
               <p className="text-lg sm:text-xl md:text-xl text-primary-100 mb-8 md:mb-10 leading-relaxed text-left">
-                Welcome to <span className="font-bold text-accent-300">MeroGhar</span> - Your trusted platform for property management and rental solutions. Connect with verified landlords and tenants effortlessly.
+                Welcome to <span className="font-bold text-accent-300">{settings.platformName}</span> - Your trusted platform for property management and rental solutions. Connect with verified landlords and tenants effortlessly.
               </p>
             </div>
             
@@ -174,7 +176,7 @@ function Home() {
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-4 md:mb-6">
               Everything You Need to Manage <span className="text-slate-900">Rentals</span>
             </h2>
-            <p className="text-gray-600 text-base md:text-lg max-w-3xl mx-auto">From property discovery to lease management, MeroGhar handles every aspect of the rental journey.</p>
+            <p className="text-gray-600 text-base md:text-lg max-w-3xl mx-auto">From property discovery to lease management, {settings.platformName} handles every aspect of the rental journey.</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
@@ -324,7 +326,7 @@ function Home() {
               Ready to Find Your <span className="text-accent-300">Perfect Match?</span>
             </h2>
             <p className="text-base md:text-lg text-primary-100 mb-8 md:mb-10 leading-relaxed">
-              Join thousands of satisfied hosts and tenants who have already transformed their rental experience with MeroGhar.
+              Join thousands of satisfied hosts and tenants who have already transformed their rental experience with {settings.platformName}.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4 md:gap-6">
               <Link 

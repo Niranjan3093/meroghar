@@ -3,11 +3,13 @@ import { useAuthStore } from '../store/authStore'
 import { FiGrid, FiHome, FiUsers, FiCheckCircle, FiBarChart2, FiLogOut, FiMenu, FiX } from 'react-icons/fi'
 import { useState, useEffect } from 'react'
 import UserAvatar from '../components/UserAvatar'
+import { useAppSettingsStore } from '../store/appSettingsStore'
 
 function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, logout } = useAuthStore()
+  const { settings } = useAppSettingsStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
@@ -52,7 +54,7 @@ function AdminLayout() {
           <div className="p-6 flex items-center justify-between border-b border-primary-700">
             <div>
               <h1 className="text-xl font-bold">Admin Portal</h1>
-              <p className="text-primary-100 text-xs mt-1">MeroGhar</p>
+              <p className="text-primary-100 text-xs mt-1">{settings.platformName}</p>
             </div>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}

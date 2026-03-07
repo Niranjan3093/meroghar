@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import { FiMail, FiPhone, FiMapPin, FiHome, FiBriefcase, FiBook, FiLock, FiFile, FiKey } from 'react-icons/fi'
+import { useAppSettingsStore } from '../store/appSettingsStore'
 
 function Footer() {
+  const { settings } = useAppSettingsStore()
+
   return (
     <footer className="bg-gradient-to-br from-primary-900 via-primary-800 to-slate-900 text-white py-12 md:py-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -11,7 +14,7 @@ function Footer() {
             <div className="flex items-center space-x-3 mb-4 group hover-glow transition-transform duration-300 hover:scale-105">
               <img 
                 src="/assets/app_logo.png" 
-                alt="MeroGhar Logo" 
+                alt={`${settings.platformName} Logo`} 
                 className="h-16 w-auto object-contain"
               />
             </div>
@@ -50,7 +53,7 @@ function Footer() {
                 </div>
                 <div>
                   <p className="text-xs text-primary-200">Email</p>
-                  <span className="text-primary-100 font-semibold hover:text-accent-300 transition-colors cursor-pointer">deuza@meroghar.com</span>
+                  <span className="text-primary-100 font-semibold hover:text-accent-300 transition-colors cursor-pointer">{settings.supportEmail}</span>
                 </div>
               </li>
               <li className="flex items-start space-x-3 group">
@@ -78,7 +81,7 @@ function Footer() {
         {/* Divider */}
         <div className="border-t border-primary-700 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-primary-200 text-sm font-medium">&copy; {new Date().getFullYear()} MeroGhar. All rights reserved.</p>
+            <p className="text-primary-200 text-sm font-medium">&copy; {new Date().getFullYear()} {settings.platformName}. All rights reserved.</p>
             <div className="flex space-x-6">
               <Link to="/terms" className="text-primary-300 hover:text-accent-300 transition-colors duration-300 text-sm font-medium">Terms</Link>
               <Link to="/privacy" className="text-primary-300 hover:text-accent-300 transition-colors duration-300 text-sm font-medium">Privacy</Link>

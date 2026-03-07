@@ -12,6 +12,7 @@ import { errorHandler } from './middleware/errorMiddleware.js';
 import { setupSocketIO } from './socket/index.js';
 import { startCronJobs, setIOInstance } from './cron/index.js';
 import configurePassport from './config/passport.js';
+import { enforceMaintenanceMode } from './middleware/maintenanceMiddleware.js';
 
 // Route imports
 import authRoutes from './routes/authRoutes.js';
@@ -49,6 +50,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(enforceMaintenanceMode);
 
 // Session configuration for passport
 app.use(session({

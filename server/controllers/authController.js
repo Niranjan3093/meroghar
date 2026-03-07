@@ -3,12 +3,16 @@ import { sendEmail } from '../utils/email.js';
 import passport from 'passport';
 import { notifyNewUserRegistration } from '../utils/notifications.js';
 import { cloudinary } from '../middleware/uploadMiddleware.js';
+import { getAppSettings } from '../utils/appSettings.js';
 
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
 export const register = async (req, res, next) => {
   try {
+    const appSettings = await getAppSettings();
+    const platformName = appSettings.platformName || 'MeroGhar';
+
     let { name, email, phone, password, role } = req.body;
 
     // Normalize and validate inputs
@@ -64,7 +68,7 @@ export const register = async (req, res, next) => {
       try {
         emailSent = await sendEmail({
           to: email,
-          subject: 'Verify Your Email - MeroGhar',
+          subject: `Verify Your Email - ${platformName}`,
           text: `Your verification code is: ${verificationToken}`,
           html: `<p>Your verification code is: <strong>${verificationToken}</strong></p><p>This code will expire in 10 minutes.</p>`
         });
@@ -109,17 +113,66 @@ export const register = async (req, res, next) => {
 // @access  Public
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
+    const { password } = req.body;
+    const settings = await getAppSettings();
+    const maxLoginAttempts = settings.maxLoginAttempts || 5;
+    const lockDurationMs = 30 * 60 * 1000;
 
     // Check for user
     const user = await User.findOne({ email }).select('+password');
 
-    if (!user || !(await user.matchPassword(password))) {
+    if (!user) {
       res.status(401);
       throw new Error('Invalid credentials');
     }
 
-    if (!user.isVerified) {
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      res.status(429);
+      throw new Error('Account temporarily locked due to too many failed login attempts. Please try again later.');
+    }
+
+    const isPasswordValid = await user.matchPassword(password);
+
+    if (!isPasswordValid) {
+      user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+
+      if (user.failedLoginAttempts >= maxLoginAttempts) {
+        user.lockUntil = new Date(Date.now() + lockDurationMs);
+
+        if (settings.adminEmailNotifications?.maxLoginAttemptsExceeded) {
+          const shouldSendAlert = !user.loginAlertSentAt || (Date.now() - new Date(user.loginAlertSentAt).getTime()) > lockDurationMs;
+
+          if (shouldSendAlert) {
+            const admins = await User.find({ role: 'admin', isActive: true }).select('email');
+            const recipients = [
+              ...new Set([
+                ...admins.map((admin) => admin.email).filter(Boolean),
+                settings.adminNotificationEmail
+              ].filter(Boolean))
+            ];
+
+            for (const recipient of recipients) {
+              await sendEmail({
+                to: recipient,
+                subject: 'Max Login Attempts Exceeded',
+                text: `User ${user.email} exceeded ${maxLoginAttempts} failed login attempts and has been temporarily locked.`,
+                html: `<p>User <strong>${user.email}</strong> exceeded <strong>${maxLoginAttempts}</strong> failed login attempts and has been temporarily locked.</p>`
+              });
+            }
+
+            user.loginAlertSentAt = new Date();
+          }
+        }
+      }
+
+      await user.save();
+
+      res.status(401);
+      throw new Error('Invalid credentials');
+    }
+
+    if (settings.requireEmailVerification && !user.isVerified) {
       res.status(401);
       throw new Error('Please verify your account first');
     }
@@ -128,6 +181,9 @@ export const login = async (req, res, next) => {
       res.status(403);
       throw new Error(`Account banned: ${user.banReason}`);
     }
+
+    user.failedLoginAttempts = 0;
+    user.lockUntil = undefined;
 
     // Update last login
     user.lastLogin = Date.now();
@@ -198,6 +254,9 @@ export const verifyEmail = async (req, res, next) => {
 // @access  Public
 export const resendVerification = async (req, res, next) => {
   try {
+    const appSettings = await getAppSettings();
+    const platformName = appSettings.platformName || 'MeroGhar';
+
     const normalizedEmail = req.body.email?.trim().toLowerCase();
 
     if (!normalizedEmail) {
@@ -223,7 +282,7 @@ export const resendVerification = async (req, res, next) => {
     if (normalizedEmail) {
       await sendEmail({
         to: normalizedEmail,
-        subject: 'Verify Your Email - MeroGhar',
+        subject: `Verify Your Email - ${platformName}`,
         text: `Your verification code is: ${verificationToken}`,
         html: `<p>Your verification code is: <strong>${verificationToken}</strong></p>`
       });
@@ -243,6 +302,9 @@ export const resendVerification = async (req, res, next) => {
 // @access  Public
 export const forgotPassword = async (req, res, next) => {
   try {
+    const appSettings = await getAppSettings();
+    const platformName = appSettings.platformName || 'MeroGhar';
+
     const { email } = req.body;
 
     const user = await User.findOne({ email });
@@ -259,7 +321,7 @@ export const forgotPassword = async (req, res, next) => {
 
     await sendEmail({
       to: email,
-      subject: 'Password Reset - MeroGhar',
+      subject: `Password Reset - ${platformName}`,
       text: `Your password reset code is: ${resetToken}`,
       html: `<p>Your password reset code is: <strong>${resetToken}</strong></p><p>This code will expire in 30 minutes.</p>`
     });

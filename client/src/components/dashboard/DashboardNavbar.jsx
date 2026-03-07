@@ -4,9 +4,11 @@ import { FiBell, FiSearch, FiHome, FiMenu, FiX, FiSettings, FiHelpCircle, FiChec
 import { useState, useEffect, useCallback } from 'react'
 import { notificationsAPI } from '../../utils/api'
 import { io } from 'socket.io-client'
+import { useAppSettingsStore } from '../../store/appSettingsStore'
 
 function DashboardNavbar({ onMenuClick }) {
   const { user } = useAuthStore()
+  const { settings } = useAppSettingsStore()
   const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
@@ -233,7 +235,7 @@ function DashboardNavbar({ onMenuClick }) {
           <Link to={user?.role === 'admin' ? '/dashboard/admin' : user?.role === 'host' ? '/dashboard/host' : '/dashboard/tenant'} className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
             <img 
               src="/assets/app_logo.png" 
-              alt="MeroGhar Logo" 
+              alt={`${settings.platformName} Logo`} 
               className="h-14 md:h-16 w-auto object-contain"
             />
           </Link>

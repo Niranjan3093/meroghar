@@ -2,6 +2,10 @@ import express from 'express';
 const router = express.Router();
 import { protect, authorize } from '../middleware/authMiddleware.js';
 import {
+  getPublicAppSettings,
+  getAdminAppSettings,
+  updateAdminAppSettings,
+  resetAdminAppSettings,
   getDashboardStats,
   getPendingProperties,
   approveProperty,
@@ -17,8 +21,16 @@ import {
   getAnalyticsReport
 } from '../controllers/adminController.js';
 
+// Public settings endpoint for app-wide runtime behavior
+router.get('/settings/public', getPublicAppSettings);
+
 // All routes are protected and admin-only
 router.use(protect, authorize('admin'));
+
+// App settings
+router.get('/settings', getAdminAppSettings);
+router.put('/settings', updateAdminAppSettings);
+router.post('/settings/reset', resetAdminAppSettings);
 
 // Dashboard statistics
 router.get('/dashboard', getDashboardStats);

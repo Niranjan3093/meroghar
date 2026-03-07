@@ -1,5 +1,6 @@
 import Property from '../models/Property.js';
 import { notifyPendingProperty } from '../utils/notifications.js';
+import { getAppSettings } from '../utils/appSettings.js';
 
 const isValidLatitude = (value) => Number.isFinite(value) && value >= -90 && value <= 90;
 const isValidLongitude = (value) => Number.isFinite(value) && value >= -180 && value <= 180;
@@ -121,7 +122,20 @@ export const getProperty = async (req, res, next) => {
 // @access  Private/Host
 export const createProperty = async (req, res, next) => {
   try {
+    const settings = await getAppSettings();
+
     req.body.host = req.user.id;
+
+    const hostPropertyCount = await Property.countDocuments({ host: req.user.id });
+    if (hostPropertyCount >= settings.maxPropertiesPerHost) {
+      res.status(400);
+      throw new Error(`You have reached the maximum limit of ${settings.maxPropertiesPerHost} properties.`);
+    }
+
+    if (settings.autoApproveProperties) {
+      req.body.verificationStatus = 'verified';
+      req.body.status = 'active';
+    }
 
     const parsedLocation = parseLocationFromBody(req.body);
     if (!parsedLocation) {
@@ -136,17 +150,19 @@ export const createProperty = async (req, res, next) => {
     req.user.properties.push(property._id);
     await req.user.save();
 
-    // Notify admins about new property for approval
-    try {
-      const io = req.app.get('io');
-      await notifyPendingProperty(io, {
-        hostId: req.user._id,
-        hostName: req.user.name,
-        propertyTitle: property.title,
-        propertyId: property._id
-      });
-    } catch (notifError) {
-      console.error('Failed to notify admins:', notifError.message);
+    if (!settings.autoApproveProperties) {
+      // Notify admins about new property for approval
+      try {
+        const io = req.app.get('io');
+        await notifyPendingProperty(io, {
+          hostId: req.user._id,
+          hostName: req.user.name,
+          propertyTitle: property.title,
+          propertyId: property._id
+        });
+      } catch (notifError) {
+        console.error('Failed to notify admins:', notifError.message);
+      }
     }
 
     res.status(201).json({

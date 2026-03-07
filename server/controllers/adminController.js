@@ -3,7 +3,9 @@ import User from '../models/User.js';
 import Lease from '../models/Lease.js';
 import Payment from '../models/Payment.js';
 import Maintenance from '../models/Maintenance.js';
+import AppSettings from '../models/AppSettings.js';
 import { notifyPropertyApproved, notifyPropertyRejected, sendAdminWarning } from '../utils/notifications.js';
+import { DEFAULT_APP_SETTINGS, getAppSettings, toPublicSettings } from '../utils/appSettings.js';
 
 // @desc    Get admin dashboard statistics
 // @route   GET /api/admin/dashboard
@@ -578,6 +580,139 @@ export const getAnalyticsReport = async (req, res, next) => {
         totalRevenue: totalRevenue[0]?.total || 0,
         totalPayments: revenuePaymentCount
       }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get public app settings
+// @route   GET /api/admin/settings/public
+// @access  Public
+export const getPublicAppSettings = async (req, res, next) => {
+  try {
+    const settings = await getAppSettings();
+
+    res.json({
+      success: true,
+      data: toPublicSettings(settings)
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get admin app settings
+// @route   GET /api/admin/settings
+// @access  Private/Admin
+export const getAdminAppSettings = async (req, res, next) => {
+  try {
+    const settings = await getAppSettings();
+
+    res.json({
+      success: true,
+      data: settings
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update admin app settings
+// @route   PUT /api/admin/settings
+// @access  Private/Admin
+export const updateAdminAppSettings = async (req, res, next) => {
+  try {
+    const allowedFields = [
+      'platformName',
+      'supportEmail',
+      'maxPropertiesPerHost',
+      'requireEmailVerification',
+      'autoApproveProperties',
+      'maxLoginAttempts',
+      'maintenanceMode',
+      'maintenanceMessage',
+      'adminNotificationEmail',
+      'adminEmailNotifications'
+    ];
+
+    const updates = {};
+    for (const field of allowedFields) {
+      if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    if (updates.platformName !== undefined) {
+      updates.platformName = String(updates.platformName).trim();
+      if (!updates.platformName) {
+        res.status(400);
+        throw new Error('Platform name is required');
+      }
+    }
+
+    if (updates.supportEmail !== undefined) {
+      updates.supportEmail = String(updates.supportEmail).trim().toLowerCase();
+    }
+
+    if (updates.adminNotificationEmail !== undefined) {
+      updates.adminNotificationEmail = String(updates.adminNotificationEmail).trim().toLowerCase();
+    }
+
+    if (updates.maxPropertiesPerHost !== undefined) {
+      const parsed = parseInt(updates.maxPropertiesPerHost, 10);
+      if (Number.isNaN(parsed) || parsed < 1) {
+        res.status(400);
+        throw new Error('Max properties per host must be at least 1');
+      }
+      updates.maxPropertiesPerHost = parsed;
+    }
+
+    if (updates.maxLoginAttempts !== undefined) {
+      const parsed = parseInt(updates.maxLoginAttempts, 10);
+      if (Number.isNaN(parsed) || parsed < 1) {
+        res.status(400);
+        throw new Error('Max login attempts must be at least 1');
+      }
+      updates.maxLoginAttempts = parsed;
+    }
+
+    if (updates.adminEmailNotifications !== undefined && typeof updates.adminEmailNotifications !== 'object') {
+      res.status(400);
+      throw new Error('Invalid admin email notification settings');
+    }
+
+    const settings = await AppSettings.findOneAndUpdate(
+      { key: 'global' },
+      { $set: updates },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Settings updated successfully',
+      data: settings
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset app settings to default values
+// @route   POST /api/admin/settings/reset
+// @access  Private/Admin
+export const resetAdminAppSettings = async (req, res, next) => {
+  try {
+    const settings = await AppSettings.findOneAndUpdate(
+      { key: 'global' },
+      { $set: DEFAULT_APP_SETTINGS },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Settings reset to default values',
+      data: settings
     });
   } catch (error) {
     next(error);

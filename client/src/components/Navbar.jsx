@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
+import { useAppSettingsStore } from '../store/appSettingsStore'
 import { FiLogOut } from 'react-icons/fi'
 import { useState } from 'react'
 import UserAvatar from './UserAvatar'
 
 function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore()
+  const { settings } = useAppSettingsStore()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const handleLogout = () => {
@@ -25,7 +27,7 @@ function Navbar() {
           <Link to="/" className="flex items-center group hover-glow transition-transform duration-300 hover:scale-110">
             <img 
               src="/assets/app_logo.png" 
-              alt="MeroGhar Logo" 
+              alt={`${settings.platformName} Logo`} 
               className="h-20 w-auto object-contain"
             />
           </Link>

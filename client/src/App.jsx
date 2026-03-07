@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
+import { useAppSettingsStore } from './store/appSettingsStore'
 
 // Layouts
 import MainLayout from './layouts/MainLayout'
@@ -42,6 +43,7 @@ import Maintenance from './pages/dashboard/Maintenance'
 import Profile from './pages/dashboard/Profile'
 import Notifications from './pages/dashboard/Notifications'
 import VisitRequestsPage from './pages/dashboard/VisitRequests'
+import MaintenanceMode from './pages/MaintenanceMode'
 
 // Protected Route Component - Redirects to login if not authenticated
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -109,10 +111,45 @@ const ScrollToTop = () => {
 }
 
 function App() {
+  const location = useLocation()
+  const { user, isAuthenticated } = useAuthStore()
+  const { settings, initialized, fetchSettings } = useAppSettingsStore()
+
+  useEffect(() => {
+    fetchSettings()
+  }, [fetchSettings])
+
+  useEffect(() => {
+    document.title = settings.platformName || 'MeroGhar'
+  }, [settings.platformName])
+
+  const isAdmin = isAuthenticated && user?.role === 'admin'
+  const onMaintenancePage = location.pathname === '/maintenance-mode'
+  const isMaintenanceBypassRoute = (
+    location.pathname === '/login' ||
+    location.pathname === '/admin' ||
+    location.pathname === '/oauth-callback' ||
+    location.pathname === '/verify-email'
+  )
+
+  if (!initialized) {
+    return null
+  }
+
+  if (settings.maintenanceMode && !isAdmin && !onMaintenancePage && !isMaintenanceBypassRoute) {
+    return <Navigate to="/maintenance-mode" replace />
+  }
+
+  if (!settings.maintenanceMode && onMaintenancePage) {
+    return <Navigate to="/" replace />
+  }
+
   return (
     <>
       <ScrollToTop />
       <Routes>
+        <Route path="/maintenance-mode" element={<MaintenanceMode />} />
+
         {/* Public Routes - Redirect to dashboard if logged in */}
         <Route path="/" element={<MainLayout />}>
           <Route index element={

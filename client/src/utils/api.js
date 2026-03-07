@@ -30,6 +30,10 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 503 && error.response?.data?.maintenanceMode) {
+      window.location.href = '/maintenance-mode'
+    }
+
     if (error.response?.status === 401) {
       useAuthStore.getState().logout()
       window.location.href = '/login'
@@ -148,6 +152,10 @@ export const reviewsAPI = {
 // Admin API
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
+  getSettings: () => api.get('/admin/settings'),
+  updateSettings: (data) => api.put('/admin/settings', data),
+  resetSettings: () => api.post('/admin/settings/reset'),
+  getPublicSettings: () => api.get('/admin/settings/public'),
   getAnalytics: () => api.get('/admin/analytics'),
   getPendingProperties: () => api.get('/admin/properties/pending'),
   getAllProperties: (params) => api.get('/admin/properties', { params }),
@@ -160,6 +168,10 @@ export const adminAPI = {
   banUser: (id, reason) => api.put(`/admin/users/${id}/ban`, { reason }),
   unbanUser: (id) => api.put(`/admin/users/${id}/unban`),
   getAllLeases: (params) => api.get('/admin/leases', { params })
+}
+
+export const settingsAPI = {
+  getPublic: () => api.get('/admin/settings/public')
 }
 
 // Analytics API

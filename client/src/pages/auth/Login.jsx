@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { authAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
+import { useAppSettingsStore } from '../../store/appSettingsStore'
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi'
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
 
@@ -14,6 +15,7 @@ function Login() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { setAuth } = useAuthStore()
+  const { settings } = useAppSettingsStore()
   const { register, handleSubmit, watch, formState: { errors } } = useForm()
   const emailValue = watch('email')
   const passwordValue = watch('password')
@@ -52,12 +54,12 @@ function Login() {
           <div className="mb-6 flex justify-center">
             <img 
               src="/assets/app_logo.png" 
-              alt="MeroGhar Logo" 
+              alt={`${settings.platformName} Logo`} 
               className="h-24 w-auto object-contain"
             />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="text-gray-600 mt-2">Sign in to your MeroGhar account</p>
+          <p className="text-gray-600 mt-2">Sign in to your {settings.platformName} account</p>
         </div>
 
         <div className="card">

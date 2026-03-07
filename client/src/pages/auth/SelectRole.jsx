@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { authAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
+import { useAppSettingsStore } from '../../store/appSettingsStore'
 import { FiHome, FiUser } from 'react-icons/fi'
 
 function SelectRole() {
@@ -10,6 +11,7 @@ function SelectRole() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
   const { user, token, setAuth } = useAuthStore()
+  const { settings } = useAppSettingsStore()
 
   const handleRoleSelect = async () => {
     if (!selectedRole) {
@@ -22,7 +24,7 @@ function SelectRole() {
       const response = await authAPI.selectRole({ role: selectedRole })
       const updatedUser = response.data.data
       setAuth(updatedUser, token)
-      toast.success('Welcome to MeroGhar!')
+      toast.success(`Welcome to ${settings.platformName}!`)
       navigate(`/dashboard/${updatedUser.role}`)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to set role')
@@ -35,9 +37,9 @@ function SelectRole() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-xl w-full">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Welcome to MeroGhar!</h2>
+          <h2 className="text-3xl font-bold text-gray-900">Welcome to {settings.platformName}!</h2>
           <p className="text-gray-600 mt-2">
-            How would you like to use MeroGhar?
+            How would you like to use {settings.platformName}?
           </p>
         </div>
 

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { authAPI } from '../../utils/api'
+import { useAppSettingsStore } from '../../store/appSettingsStore'
 import { FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff } from 'react-icons/fi'
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
 
@@ -11,6 +12,7 @@ function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState(null)
+  const { settings } = useAppSettingsStore()
   const navigate = useNavigate()
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     defaultValues: {
@@ -59,12 +61,12 @@ function Register() {
           <div className="mb-6 flex justify-center">
             <img 
               src="/assets/app_logo.png" 
-              alt="MeroGhar Logo" 
+              alt={`${settings.platformName} Logo`} 
               className="h-24 w-auto object-contain"
             />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-          <p className="text-gray-600 mt-2">Join MeroGhar today</p>
+          <p className="text-gray-600 mt-2">Join {settings.platformName} today</p>
         </div>
 
         <div className="card">

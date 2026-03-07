@@ -1,33 +1,55 @@
-import { useState } from 'react'
-import { FiSettings, FiBell, FiShield, FiDatabase, FiSave, FiRefreshCw } from 'react-icons/fi'
+import { useEffect, useState } from 'react'
+import { FiSettings, FiBell, FiShield, FiSave, FiRefreshCw } from 'react-icons/fi'
 import { toast } from 'react-toastify'
+import { adminAPI } from '../../../utils/api'
+import { useAppSettingsStore } from '../../../store/appSettingsStore'
 
 function AdminSettings() {
+  const { fetchSettings } = useAppSettingsStore()
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
   const [settings, setSettings] = useState({
-    // General Settings
     platformName: 'MeroGhar',
     supportEmail: 'support@meroghar.com',
     maxPropertiesPerHost: 10,
-    
-    // Notification Settings
-    emailNotifications: true,
-    pushNotifications: true,
-    
-    // Security Settings
+    adminNotificationEmail: 'support@meroghar.com',
+    adminEmailNotifications: {
+      newUserRegistration: true,
+      propertyPendingApproval: true,
+      maxLoginAttemptsExceeded: true
+    },
     requireEmailVerification: true,
     autoApproveProperties: false,
     maxLoginAttempts: 5,
-    
-    // Lease Settings
-    defaultLeaseDuration: 12,
-    securityDepositMonths: 2,
-    lateFeePercentage: 5,
-    
-    // Maintenance Settings
     maintenanceMode: false,
     maintenanceMessage: 'We are currently performing scheduled maintenance. Please check back later.'
   })
+
+  useEffect(() => {
+    const fetchAdminSettings = async () => {
+      try {
+        setFetching(true)
+        const response = await adminAPI.getSettings()
+        if (response.data?.success) {
+          const data = response.data.data
+          setSettings((prev) => ({
+            ...prev,
+            ...data,
+            adminEmailNotifications: {
+              ...prev.adminEmailNotifications,
+              ...(data.adminEmailNotifications || {})
+            }
+          }))
+        }
+      } catch (_error) {
+        toast.error('Failed to load settings')
+      } finally {
+        setFetching(false)
+      }
+    }
+
+    fetchAdminSettings()
+  }, [])
 
   const handleChange = (key, value) => {
     setSettings(prev => ({
@@ -36,38 +58,69 @@ function AdminSettings() {
     }))
   }
 
+  const handleNotificationToggle = (key, value) => {
+    setSettings((prev) => ({
+      ...prev,
+      adminEmailNotifications: {
+        ...prev.adminEmailNotifications,
+        [key]: value
+      }
+    }))
+  }
+
   const handleSave = async () => {
     try {
       setLoading(true)
-      // In a real app, this would save to the backend
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await adminAPI.updateSettings({
+        platformName: settings.platformName,
+        supportEmail: settings.supportEmail,
+        maxPropertiesPerHost: settings.maxPropertiesPerHost,
+        adminNotificationEmail: settings.adminNotificationEmail,
+        adminEmailNotifications: settings.adminEmailNotifications,
+        requireEmailVerification: settings.requireEmailVerification,
+        autoApproveProperties: settings.autoApproveProperties,
+        maxLoginAttempts: settings.maxLoginAttempts,
+        maintenanceMode: settings.maintenanceMode,
+        maintenanceMessage: settings.maintenanceMessage
+      })
+
+      await fetchSettings()
       toast.success('Settings saved successfully')
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to save settings')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (window.confirm('Are you sure you want to reset all settings to default?')) {
-      setSettings({
-        platformName: 'MeroGhar',
-        supportEmail: 'support@meroghar.com',
-        maxPropertiesPerHost: 10,
-        emailNotifications: true,
-        pushNotifications: true,
-        requireEmailVerification: true,
-        autoApproveProperties: false,
-        maxLoginAttempts: 5,
-        defaultLeaseDuration: 12,
-        securityDepositMonths: 2,
-        lateFeePercentage: 5,
-        maintenanceMode: false,
-        maintenanceMessage: 'We are currently performing scheduled maintenance. Please check back later.'
-      })
-      toast.info('Settings reset to default')
+      try {
+        setLoading(true)
+        const response = await adminAPI.resetSettings()
+        if (response.data?.success) {
+          const data = response.data.data
+          setSettings((prev) => ({
+            ...prev,
+            ...data,
+            adminEmailNotifications: {
+              ...prev.adminEmailNotifications,
+              ...(data.adminEmailNotifications || {})
+            }
+          }))
+          await fetchSettings()
+          toast.info('Settings reset to default')
+        }
+      } catch (_error) {
+        toast.error('Failed to reset settings')
+      } finally {
+        setLoading(false)
+      }
     }
+  }
+
+  if (fetching) {
+    return <div className="text-gray-600">Loading settings...</div>
   }
 
   return (
@@ -163,14 +216,14 @@ function AdminSettings() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-900">Email Notifications</p>
-                <p className="text-sm text-gray-600">Send important updates via email</p>
+                <p className="font-medium text-gray-900">New User Registration Alerts</p>
+                <p className="text-sm text-gray-600">Email admins when a new user signs up</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={settings.emailNotifications}
-                  onChange={(e) => handleChange('emailNotifications', e.target.checked)}
+                  checked={settings.adminEmailNotifications.newUserRegistration}
+                  onChange={(e) => handleNotificationToggle('newUserRegistration', e.target.checked)}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
@@ -179,18 +232,47 @@ function AdminSettings() {
             
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-gray-900">Push Notifications</p>
-                <p className="text-sm text-gray-600">Send browser push notifications</p>
+                <p className="font-medium text-gray-900">Property Pending Approval Alerts</p>
+                <p className="text-sm text-gray-600">Email admins when host submits a property</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={settings.pushNotifications}
-                  onChange={(e) => handleChange('pushNotifications', e.target.checked)}
+                  checked={settings.adminEmailNotifications.propertyPendingApproval}
+                  onChange={(e) => handleNotificationToggle('propertyPendingApproval', e.target.checked)}
                   className="sr-only peer"
                 />
                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
               </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">Max Login Attempts Exceeded Alerts</p>
+                <p className="text-sm text-gray-600">Email admins when users exceed login attempts</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.adminEmailNotifications.maxLoginAttemptsExceeded}
+                  onChange={(e) => handleNotificationToggle('maxLoginAttemptsExceeded', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Admin Alert Email
+              </label>
+              <input
+                type="email"
+                value={settings.adminNotificationEmail}
+                onChange={(e) => handleChange('adminNotificationEmail', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                maxLength={120}
+              />
             </div>
           </div>
         </div>
@@ -248,60 +330,6 @@ function AdminSettings() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 min={1}
                 max={20}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Lease Settings */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <FiDatabase className="text-green-600 text-xl" />
-            </div>
-            <h2 className="text-xl font-semibold">Lease Settings</h2>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Default Lease Duration (months)
-              </label>
-              <input
-                type="number"
-                value={settings.defaultLeaseDuration}
-                onChange={(e) => handleChange('defaultLeaseDuration', parseInt(e.target.value) || 0)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                min={1}
-                max={60}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Security Deposit (months of rent)
-              </label>
-              <input
-                type="number"
-                value={settings.securityDepositMonths}
-                onChange={(e) => handleChange('securityDepositMonths', parseInt(e.target.value) || 0)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                min={0}
-                max={12}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Late Fee Percentage
-              </label>
-              <input
-                type="number"
-                value={settings.lateFeePercentage}
-                onChange={(e) => handleChange('lateFeePercentage', parseInt(e.target.value) || 0)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                min={0}
-                max={100}
               />
             </div>
           </div>

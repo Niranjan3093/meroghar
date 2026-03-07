@@ -1,5 +1,7 @@
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
+import { sendEmail } from './email.js';
+import { getAppSettings } from './appSettings.js';
 
 // Helper function to create and emit notification
 export const createNotification = async (io, data) => {
@@ -9,6 +11,35 @@ export const createNotification = async (io, data) => {
   } catch (error) {
     console.error('Error creating notification:', error);
     return null;
+  }
+};
+
+const sendAdminEmailAlert = async ({ subject, text, html, preferenceKey }) => {
+  const settings = await getAppSettings();
+
+  if (!settings.adminEmailNotifications?.[preferenceKey]) {
+    return;
+  }
+
+  const admins = await User.find({ role: 'admin', isActive: true }).select('email');
+  const recipients = [
+    ...new Set([
+      ...admins.map((admin) => admin.email).filter(Boolean),
+      settings.adminNotificationEmail
+    ].filter(Boolean))
+  ];
+
+  if (recipients.length === 0) {
+    return;
+  }
+
+  for (const recipient of recipients) {
+    await sendEmail({
+      to: recipient,
+      subject,
+      text,
+      html
+    });
   }
 };
 
@@ -265,6 +296,13 @@ export const notifyNewUserRegistration = async (io, { userId, userName, userEmai
         }
       });
     }
+
+    await sendAdminEmailAlert({
+      preferenceKey: 'newUserRegistration',
+      subject: 'New User Registration Alert',
+      text: `${userName} (${userEmail}) has registered on the platform.`,
+      html: `<p><strong>${userName}</strong> (${userEmail}) has registered on the platform.</p>`
+    });
   } catch (error) {
     console.error('Error notifying admins about new user:', error);
   }
@@ -293,6 +331,13 @@ export const notifyPendingProperty = async (io, { hostId, hostName, propertyTitl
         }
       });
     }
+
+    await sendAdminEmailAlert({
+      preferenceKey: 'propertyPendingApproval',
+      subject: 'Property Pending Approval',
+      text: `${hostName} submitted "${propertyTitle}" for approval.`,
+      html: `<p><strong>${hostName}</strong> submitted <strong>${propertyTitle}</strong> for approval.</p>`
+    });
   } catch (error) {
     console.error('Error notifying admins about pending property:', error);
   }

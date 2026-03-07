@@ -1,5 +1,8 @@
+import { useAppSettingsStore } from '../../store/appSettingsStore'
+
 function PrivacyNotice() {
   const lastUpdated = 'April 13, 2026'
+  const { settings } = useAppSettingsStore()
 
   return (
     <section className="py-12 md:py-16 bg-gradient-to-br from-slate-50 via-white to-primary-50 min-h-[70vh]">
@@ -98,7 +101,7 @@ function PrivacyNotice() {
             <div>
               <h2 className="text-xl font-semibold text-slate-900 mb-3">11. Children's Privacy</h2>
               <p>
-                MeroGhar is intended for users who are legally permitted to enter rental agreements. We do not knowingly collect
+                {settings.platformName} is intended for users who are legally permitted to enter rental agreements. We do not knowingly collect
                 personal data from children where prohibited by law.
               </p>
             </div>
@@ -114,7 +117,7 @@ function PrivacyNotice() {
             <div>
               <h2 className="text-xl font-semibold text-slate-900 mb-3">13. Contact Us</h2>
               <p>
-                For privacy questions or requests, contact us at deuza@meroghar.com, +977 9702004193, or visit us in Itahari, Nepal.
+                For privacy questions or requests, contact us at {settings.supportEmail}, +977 9702004193, or visit us in Itahari, Nepal.
               </p>
             </div>
           </div>

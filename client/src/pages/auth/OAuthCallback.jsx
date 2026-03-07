@@ -2,11 +2,13 @@ import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useAuthStore } from '../../store/authStore'
+import { useAppSettingsStore } from '../../store/appSettingsStore'
 
 function OAuthCallback() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
+  const { settings } = useAppSettingsStore()
 
   useEffect(() => {
     const token = searchParams.get('token')
@@ -27,7 +29,7 @@ function OAuthCallback() {
         
         if (isNewUser) {
           // New user - redirect to role selection
-          toast.info('Please select how you want to use MeroGhar')
+          toast.info(`Please select how you want to use ${settings.platformName}`)
           navigate('/select-role')
         } else {
           // Existing user - redirect to dashboard
@@ -41,7 +43,7 @@ function OAuthCallback() {
     } else {
       navigate('/login')
     }
-  }, [searchParams, navigate, setAuth])
+  }, [searchParams, navigate, setAuth, settings.platformName])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

@@ -110,6 +110,13 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: Date,
+  loginAlertSentAt: Date,
   
   lastLogin: Date
 }, {
