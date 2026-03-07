@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { propertiesAPI, messagesAPI } from '../../utils/api'
+import { propertiesAPI, messagesAPI, usersAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
 import { toast } from 'react-toastify'
 import UserAvatar from '../../components/UserAvatar'
@@ -20,10 +20,18 @@ function PropertyDetails() {
   const [showContactForm, setShowContactForm] = useState(false)
   const [message, setMessage] = useState('')
   const [sendingMessage, setSendingMessage] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
 
   useEffect(() => {
     fetchProperty()
   }, [id])
+
+  useEffect(() => {
+    if (user && id) {
+      checkFavoriteStatus()
+    }
+  }, [user, id])
 
   const fetchProperty = async () => {
     try {
@@ -35,6 +43,70 @@ function PropertyDetails() {
       toast.error('Failed to load property details')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const checkFavoriteStatus = async () => {
+    try {
+      const response = await usersAPI.checkFavorite(id)
+      setIsFavorite(response.data.data.isFavorite)
+    } catch (error) {
+      console.error('Failed to check favorite status:', error)
+    }
+  }
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      toast.error('Please login to add favorites')
+      return
+    }
+
+    try {
+      setFavoriteLoading(true)
+      if (isFavorite) {
+        await usersAPI.removeFavorite(id)
+        setIsFavorite(false)
+        toast.success('Removed from favorites')
+      } else {
+        await usersAPI.addFavorite(id)
+        setIsFavorite(true)
+        toast.success('Added to favorites')
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+      toast.error(error.response?.data?.message || 'Failed to update favorites')
+    } finally {
+      setFavoriteLoading(false)
+    }
+  }
+
+  const handleShare = async () => {
+    const shareData = {
+      title: property.title,
+      text: `Check out this property: ${property.title}`,
+      url: window.location.href
+    }
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData)
+        toast.success('Shared successfully!')
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(window.location.href)
+        toast.success('Link copied to clipboard!')
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error sharing:', error)
+        // Try clipboard as fallback
+        try {
+          await navigator.clipboard.writeText(window.location.href)
+          toast.success('Link copied to clipboard!')
+        } catch (clipboardError) {
+          toast.error('Failed to share')
+        }
+      }
     }
   }
 
@@ -204,10 +276,23 @@ function PropertyDetails() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-                  <FiHeart className="text-gray-600" />
+                <button 
+                  onClick={toggleFavorite}
+                  disabled={favoriteLoading}
+                  className={`p-2 border rounded-lg hover:bg-gray-50 transition ${
+                    isFavorite 
+                      ? 'border-red-500 bg-red-50' 
+                      : 'border-gray-200'
+                  }`}
+                  title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                >
+                  <FiHeart className={`${isFavorite ? 'text-red-500 fill-current' : 'text-gray-600'}`} />
                 </button>
-                <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                <button 
+                  onClick={handleShare}
+                  className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                  title="Share property"
+                >
                   <FiShare2 className="text-gray-600" />
                 </button>
               </div>

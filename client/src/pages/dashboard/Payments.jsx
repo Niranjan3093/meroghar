@@ -89,8 +89,6 @@ function Payments() {
         return <span className="text-purple-600 font-medium">Khalti</span>
       case 'esewa':
         return <span className="text-green-600 font-medium">eSewa</span>
-      case 'bank-transfer':
-        return <span className="text-blue-600 font-medium">Bank</span>
       case 'cash':
         return <span className="text-gray-600 font-medium">Cash</span>
       default:

@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { propertiesAPI } from '../../utils/api'
-import { FiSearch, FiMapPin, FiHome, FiFilter } from 'react-icons/fi'
+import { propertiesAPI, usersAPI } from '../../utils/api'
+import { FiSearch, FiMapPin, FiHome, FiFilter, FiHeart } from 'react-icons/fi'
 import { toast } from 'react-toastify'
+import { useAuthStore } from '../../store/authStore'
 
 function Properties() {
+  const { user } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [properties, setProperties] = useState([])
   const [loading, setLoading] = useState(true)
   const [showFilters, setShowFilters] = useState(false)
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 })
+  const [favorites, setFavorites] = useState(new Set())
   
   const [filters, setFilters] = useState({
     city: searchParams.get('city') || '',
@@ -27,6 +30,12 @@ function Properties() {
   useEffect(() => {
     fetchProperties()
   }, [searchParams])
+
+  useEffect(() => {
+    if (user) {
+      fetchFavorites()
+    }
+  }, [user])
 
   const fetchProperties = async () => {
     try {
@@ -51,6 +60,47 @@ function Properties() {
       toast.error('Failed to load properties')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchFavorites = async () => {
+    try {
+      const response = await usersAPI.getFavorites()
+      const favoriteIds = new Set(response.data.data.map(p => p._id))
+      setFavorites(favoriteIds)
+    } catch (error) {
+      console.error('Failed to fetch favorites:', error)
+    }
+  }
+
+  const toggleFavorite = async (e, propertyId) => {
+    e.preventDefault() // Prevent navigation
+    e.stopPropagation()
+
+    if (!user) {
+      toast.error('Please login to add favorites')
+      return
+    }
+
+    try {
+      const isFavorite = favorites.has(propertyId)
+      
+      if (isFavorite) {
+        await usersAPI.removeFavorite(propertyId)
+        setFavorites(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(propertyId)
+          return newSet
+        })
+        toast.success('Removed from favorites')
+      } else {
+        await usersAPI.addFavorite(propertyId)
+        setFavorites(prev => new Set([...prev, propertyId]))
+        toast.success('Added to favorites')
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+      toast.error(error.response?.data?.message || 'Failed to update favorites')
     }
   }
 
@@ -262,6 +312,19 @@ function Properties() {
                       {property.propertyType}
                     </span>
                   </div>
+                  {user && (
+                    <button
+                      onClick={(e) => toggleFavorite(e, property._id)}
+                      className={`absolute top-3 right-3 p-2 rounded-full transition-all ${
+                        favorites.has(property._id)
+                          ? 'bg-red-500 text-white'
+                          : 'bg-white/90 text-gray-600 hover:bg-white'
+                      }`}
+                      title={favorites.has(property._id) ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <FiHeart className={favorites.has(property._id) ? 'fill-current' : ''} size={16} />
+                    </button>
+                  )}
                 </div>
 
                 <div className="p-4">

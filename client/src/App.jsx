@@ -210,6 +210,21 @@ function App() {
             <PaySecurityDeposit />
           </ProtectedRoute>
         } />
+        <Route path="pay-deposit/:id" element={
+          <ProtectedRoute allowedRoles={['tenant']}>
+            <PaySecurityDeposit />
+          </ProtectedRoute>
+        } />
+        <Route path="pay-deposit/:id/esewa-success" element={
+          <ProtectedRoute allowedRoles={['tenant']}>
+            <PaySecurityDeposit />
+          </ProtectedRoute>
+        } />
+        <Route path="pay-deposit/:id/esewa-failure" element={
+          <ProtectedRoute allowedRoles={['tenant']}>
+            <PaySecurityDeposit />
+          </ProtectedRoute>
+        } />
         <Route path="payments" element={<Payments />} />
         <Route path="maintenance" element={<Maintenance />} />
         <Route path="profile" element={<Profile />} />

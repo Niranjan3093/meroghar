@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { leaseRequestsAPI } from '../../utils/api'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { leaseRequestsAPI, paymentsAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
 import { toast } from 'react-toastify'
 import { 
@@ -12,6 +12,7 @@ import {
 function PaySecurityDeposit() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuthStore()
   const [leaseRequest, setLeaseRequest] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -23,13 +24,70 @@ function PaySecurityDeposit() {
 
   const paymentMethods = [
     { id: 'khalti', name: 'Khalti', icon: '💜', description: 'Pay with Khalti digital wallet' },
-    { id: 'esewa', name: 'eSewa', icon: '💚', description: 'Pay with eSewa digital wallet' },
-    { id: 'bank-transfer', name: 'Bank Transfer', icon: '🏦', description: 'Direct bank transfer (Demo)' }
+    { id: 'esewa', name: 'eSewa', icon: '💚', description: 'Pay with eSewa digital wallet' }
   ]
+
+  const formatDuration = (duration) => {
+    const durationMap = {
+      'monthly': '1 Month',
+      '3-months': '3 Months',
+      '6-months': '6 Months',
+      'yearly': '12 Months'
+    }
+    return durationMap[duration] || duration
+  }
+
+  // Check for eSewa callback
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const oid = params.get('oid')
+    const amt = params.get('amt')
+    const refId = params.get('refId')
+    
+    if (location.pathname.includes('/esewa-success') && oid && amt && refId) {
+      handleEsewaSuccess({ oid, amt, refId })
+    } else if (location.pathname.includes('/esewa-failure')) {
+      toast.error('eSewa payment failed or was cancelled')
+      navigate(`/dashboard/pay-deposit/${id}`, { replace: true })
+    }
+  }, [location])
+
+  const handleEsewaSuccess = async (params) => {
+    try {
+      setProcessing(true)
+      setPaymentStep('processing')
+      
+      // Verify payment with backend
+      const verifyResponse = await paymentsAPI.verifyEsewa(params)
+      
+      if (verifyResponse.data.success) {
+        // Payment verified, create lease
+        const response = await leaseRequestsAPI.payDeposit(id, {
+          paymentMethod: 'esewa',
+          transactionId: params.refId,
+          paymentGatewayResponse: verifyResponse.data.data
+        })
+
+        setPaymentStep('success')
+        toast.success('Payment successful! Your lease has been created.')
+        
+        setTimeout(() => {
+          navigate(`/dashboard/leases/${response.data.lease._id}`)
+        }, 2000)
+      } else {
+        throw new Error(verifyResponse.data.message || 'Payment verification failed')
+      }
+    } catch (error) {
+      console.error('eSewa verification failed:', error)
+      toast.error(error.message || 'Payment verification failed')
+      navigate(`/dashboard/pay-deposit/${id}`, { replace: true })
+      setProcessing(false)
+    }
+  }
 
   useEffect(() => {
     // Fetch lease request when id is available
-    if (id) {
+    if (id && !location.pathname.includes('/esewa-success')) {
       fetchLeaseRequest()
     }
   }, [id])
@@ -89,49 +147,108 @@ function PaySecurityDeposit() {
     setPaymentStep('processing')
 
     try {
-      // Simulate payment gateway redirect and processing
       if (selectedPaymentMethod === 'khalti') {
-        toast.info('Connecting to Khalti...')
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        toast.info('Processing payment...')
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // Khalti payment integration
+        const khaltiConfig = {
+          publicKey: 'test_public_key_dc74e0fd57cb46cd93832aee0a390234',
+          productIdentity: id,
+          productName: `Security Deposit - ${leaseRequest.property.title}`,
+          productUrl: window.location.origin,
+          eventHandler: {
+            onSuccess: async (payload) => {
+              try {
+                // Verify payment with backend
+                const verifyResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5500/api'}/payments/khalti/verify`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                  },
+                  body: JSON.stringify({
+                    token: payload.token,
+                    amount: leaseRequest.securityDeposit
+                  })
+                });
+
+                const verifyData = await verifyResponse.json();
+
+                if (verifyData.success) {
+                  // Payment verified, create lease
+                  const response = await leaseRequestsAPI.payDeposit(id, {
+                    paymentMethod: 'khalti',
+                    transactionId: payload.idx,
+                    paymentGatewayResponse: verifyData.data
+                  });
+
+                  setPaymentStep('success');
+                  toast.success('Payment successful! Your lease has been created.');
+                  
+                  setTimeout(() => {
+                    navigate(`/dashboard/leases/${response.data.lease._id}`);
+                  }, 2000);
+                } else {
+                  throw new Error(verifyData.message || 'Payment verification failed');
+                }
+              } catch (error) {
+                console.error('Payment verification failed:', error);
+                setPaymentStep('select');
+                toast.error(error.message || 'Payment verification failed');
+                setProcessing(false);
+              }
+            },
+            onError: (error) => {
+              console.error('Khalti payment error:', error);
+              setPaymentStep('select');
+              toast.error('Payment failed. Please try again.');
+              setProcessing(false);
+            },
+            onClose: () => {
+              setPaymentStep('select');
+              setProcessing(false);
+            }
+          },
+          paymentPreference: ['KHALTI', 'EBANKING', 'MOBILE_BANKING', 'CONNECT_IPS', 'SCT']
+        };
+
+        const checkout = new window.KhaltiCheckout(khaltiConfig);
+        checkout.show({ amount: leaseRequest.securityDeposit * 100 }); // Amount in paisa
+        
       } else if (selectedPaymentMethod === 'esewa') {
-        toast.info('Connecting to eSewa...')
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        toast.info('Processing payment...')
-        await new Promise(resolve => setTimeout(resolve, 2000))
-      } else {
-        toast.info('Verifying bank transfer...')
-        await new Promise(resolve => setTimeout(resolve, 2500))
+        // eSewa payment integration
+        const esewaPath = 'https://eSewa.com.np/epay/main';
+        const params = {
+          amt: leaseRequest.securityDeposit,
+          psc: 0,
+          pdc: 0,
+          txAmt: 0,
+          tAmt: leaseRequest.securityDeposit,
+          pid: `LEASE-${id}-${Date.now()}`,
+          scd: 'EPAYTEST', // Merchant code
+          su: `${window.location.origin}/dashboard/pay-deposit/${id}/esewa-success`,
+          fu: `${window.location.origin}/dashboard/pay-deposit/${id}/esewa-failure`
+        };
+
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = esewaPath;
+
+        Object.keys(params).forEach(key => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = params[key];
+          form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
       }
-
-      // Generate transaction ID
-      const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
-      
-      // Call backend to process payment
-      const response = await leaseRequestsAPI.payDeposit(id, {
-        paymentMethod: selectedPaymentMethod,
-        transactionId,
-        paymentGatewayResponse: {
-          status: 'success',
-          method: selectedPaymentMethod,
-          timestamp: new Date().toISOString()
-        }
-      })
-
-      setPaymentStep('success')
-      toast.success('Payment successful! Your lease has been created.')
-      
-      // Wait a moment before redirecting
-      setTimeout(() => {
-        navigate(`/dashboard/leases/${response.data.lease._id}`)
-      }, 2000)
     } catch (error) {
-      console.error('Payment failed:', error)
-      setPaymentStep('select')
-      toast.error(error.response?.data?.message || 'Payment failed. Please try again.')
-    } finally {
-      setProcessing(false)
+      console.error('Payment failed:', error);
+      setPaymentStep('select');
+      toast.error(error.response?.data?.message || 'Payment failed. Please try again.');
+      setProcessing(false);
     }
   }
 
@@ -204,7 +321,7 @@ function PaySecurityDeposit() {
                 <span className="text-gray-600 flex items-center">
                   <FiClock className="mr-2" /> Lease Duration
                 </span>
-                <span className="font-medium capitalize">{leaseRequest.proposedDuration}</span>
+                <span className="font-medium">{formatDuration(leaseRequest.proposedDuration)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600 flex items-center">
@@ -384,10 +501,9 @@ function PaySecurityDeposit() {
               </div>
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
-              <p className="text-sm text-yellow-800">
-                <strong>Demo Mode:</strong> This is a simulated payment for demonstration purposes. 
-                No actual money will be charged.
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+              <p className="text-sm text-blue-800">
+                <strong>Secure Payment:</strong> You will be redirected to {selectedPaymentMethod === 'khalti' ? 'Khalti' : 'eSewa'} to complete your payment securely. 
               </p>
             </div>
 

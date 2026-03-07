@@ -10,7 +10,7 @@ import {
   FiPhone, FiVideo, FiCheck, FiCheckCircle, FiImage, 
   FiUser, FiFlag, FiSlash, FiTrash2, FiX, FiHome,
   FiCalendar, FiDollarSign, FiClock, FiAlertCircle,
-  FiArrowLeft, FiInfo, FiFileText, FiEdit
+  FiArrowLeft, FiInfo, FiFileText, FiEdit, FiShare2
 } from 'react-icons/fi'
 
 function Messages() {
@@ -321,6 +321,45 @@ function Messages() {
     }
   }
 
+  const handleShareProperty = async () => {
+    if (!selectedConversation?.property) {
+      toast.error('No property to share')
+      return
+    }
+
+    const property = selectedConversation.property
+    const propertyUrl = `${window.location.origin}/properties/${property._id}`
+    const shareData = {
+      title: property.title,
+      text: `Check out this property: ${property.title} - NPR ${property.rent?.toLocaleString()}/month`,
+      url: propertyUrl
+    }
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData)
+        toast.success('Property shared successfully!')
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(propertyUrl)
+        toast.success('Property link copied to clipboard!')
+      }
+      setShowOptionsMenu(false)
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error sharing:', error)
+        // Try clipboard as fallback
+        try {
+          await navigator.clipboard.writeText(propertyUrl)
+          toast.success('Property link copied to clipboard!')
+          setShowOptionsMenu(false)
+        } catch (clipboardError) {
+          toast.error('Failed to share property')
+        }
+      }
+    }
+  }
+
   const handleReportUser = async (e) => {
     e.preventDefault()
     if (!reportData.type) {
@@ -617,16 +656,25 @@ function Messages() {
                     {showOptionsMenu && (
                       <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                         {selectedConversation.property && (
-                          <button
-                            onClick={() => {
-                              navigate(`/properties/${selectedConversation.property._id}`)
-                              setShowOptionsMenu(false)
-                            }}
-                            className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                          >
-                            <FiHome className="w-4 h-4" />
-                            View Property
-                          </button>
+                          <>
+                            <button
+                              onClick={() => {
+                                navigate(`/properties/${selectedConversation.property._id}`)
+                                setShowOptionsMenu(false)
+                              }}
+                              className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                            >
+                              <FiHome className="w-4 h-4" />
+                              View Property
+                            </button>
+                            <button
+                              onClick={handleShareProperty}
+                              className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                            >
+                              <FiShare2 className="w-4 h-4" />
+                              Share Property
+                            </button>
+                          </>
                         )}
                         <button
                           onClick={() => {
@@ -924,8 +972,8 @@ function Messages() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly (3 months)</option>
-                  <option value="half-yearly">Half-yearly (6 months)</option>
+                  <option value="3-months">3 Months</option>
+                  <option value="6-months">6 Months</option>
                   <option value="yearly">Yearly (12 months)</option>
                 </select>
               </div>

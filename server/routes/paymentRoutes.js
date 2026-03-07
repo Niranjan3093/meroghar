@@ -90,12 +90,101 @@ router.post('/', protect, async (req, res) => {
 
 // Verify Khalti payment
 router.post('/khalti/verify', protect, async (req, res) => {
-  res.json({ message: 'Verify Khalti payment' });
+  try {
+    const { token, amount } = req.body;
+    
+    if (!token || !amount) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Token and amount are required' 
+      });
+    }
+
+    // Verify payment with Khalti API
+    const khaltiResponse = await fetch('https://khalti.com/api/v2/payment/verify/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Key ${process.env.KHALTI_SECRET_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ token, amount: amount * 100 }) // Khalti expects amount in paisa
+    });
+
+    const khaltiData = await khaltiResponse.json();
+
+    if (khaltiResponse.ok && khaltiData.idx) {
+      // Payment verified successfully
+      return res.json({ 
+        success: true, 
+        message: 'Payment verified successfully',
+        data: khaltiData
+      });
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Payment verification failed',
+        error: khaltiData
+      });
+    }
+  } catch (error) {
+    console.error('Khalti verification error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to verify Khalti payment',
+      error: error.message
+    });
+  }
 });
 
 // Verify eSewa payment
 router.post('/esewa/verify', protect, async (req, res) => {
-  res.json({ message: 'Verify eSewa payment' });
+  try {
+    const { oid, amt, refId } = req.body;
+    
+    if (!oid || !amt || !refId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Order ID, amount, and reference ID are required' 
+      });
+    }
+
+    // Verify payment with eSewa API
+    const esewaVerifyUrl = `https://eSewa.com.np/epay/transrec`;
+    const params = new URLSearchParams({
+      amt: amt,
+      rid: refId,
+      pid: oid,
+      scd: process.env.ESEWA_MERCHANT_ID
+    });
+
+    const esewaResponse = await fetch(`${esewaVerifyUrl}?${params}`, {
+      method: 'GET'
+    });
+
+    const responseText = await esewaResponse.text();
+
+    // eSewa returns XML or "Success" text
+    if (responseText.includes('Success') || esewaResponse.ok) {
+      return res.json({ 
+        success: true, 
+        message: 'Payment verified successfully',
+        data: { oid, amt, refId }
+      });
+    } else {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Payment verification failed',
+        error: responseText
+      });
+    }
+  } catch (error) {
+    console.error('eSewa verification error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Failed to verify eSewa payment',
+      error: error.message
+    });
+  }
 });
 
 export default router;

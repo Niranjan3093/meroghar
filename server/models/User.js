@@ -76,6 +76,12 @@ const userSchema = new mongoose.Schema({
     ref: 'Property'
   }],
   
+  // Tenant favorites
+  favorites: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Property'
+  }],
+  
   // Rating
   rating: {
     type: Number,

@@ -45,6 +45,16 @@ function LeaseRequests() {
     setShowResponseModal(true)
   }
 
+  const formatDuration = (duration) => {
+    const durationMap = {
+      'monthly': '1 Month',
+      '3-months': '3 Months',
+      '6-months': '6 Months',
+      'yearly': '12 Months'
+    }
+    return durationMap[duration] || duration
+  }
+
   const handleSubmitResponse = async () => {
     if (!selectedRequest) return
 
@@ -193,7 +203,7 @@ function LeaseRequests() {
                       </span>
                       <span className="flex items-center">
                         <FiClock className="mr-1" />
-                        {request.proposedDuration}
+                        {formatDuration(request.proposedDuration)}
                       </span>
                       <span className="flex items-center">
                         <FiDollarSign className="mr-1" />

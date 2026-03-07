@@ -174,4 +174,12 @@ export const notificationsAPI = {
   sendWarning: (userId, title, message) => api.post('/notifications/admin-warning', { userId, title, message })
 }
 
+// Users API
+export const usersAPI = {
+  getFavorites: () => api.get('/users/favorites'),
+  addFavorite: (propertyId) => api.post(`/users/favorites/${propertyId}`),
+  removeFavorite: (propertyId) => api.delete(`/users/favorites/${propertyId}`),
+  checkFavorite: (propertyId) => api.get(`/users/favorites/check/${propertyId}`)
+}
+
 export default api
