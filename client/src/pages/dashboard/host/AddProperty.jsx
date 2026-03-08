@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { propertiesAPI } from '../../../utils/api'
 import { toast } from 'react-toastify'
 import { FiHome, FiMapPin, FiDollarSign, FiImage, FiX, FiPlus, FiCheck, FiChevronLeft, FiChevronRight, FiAlertCircle } from 'react-icons/fi'
+import GoogleMap from '../../../components/GoogleMap'
 
 const NEPAL_CITIES = [
   'Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Biratnagar', 'Birgunj',
@@ -80,6 +81,8 @@ function AddProperty() {
     city: '',
     state: '',
     zipCode: '',
+    latitude: null,
+    longitude: null,
     
     // Details
     bedrooms: 1,
@@ -169,6 +172,8 @@ function AddProperty() {
           city: p.address?.city || '',
           state: p.address?.state || '',
           zipCode: p.address?.zipCode || '',
+          latitude: p.location?.coordinates?.[1] || null,
+          longitude: p.location?.coordinates?.[0] || null,
           bedrooms: p.bedrooms || 1,
           bathrooms: p.bathrooms || 1,
           area: p.area?.value ? String(p.area.value) : '',
@@ -200,6 +205,33 @@ function AddProperty() {
     setCitySearch(city)
     setShowCityDropdown(false)
     if (formErrors.city) setFormErrors({ ...formErrors, city: '' })
+  }
+
+  const handleLocationSelect = (addressData) => {
+    // Update form fields with data from map
+    setFormData(prev => ({
+      ...prev,
+      address: addressData.street || prev.address,
+      city: addressData.city?.toLowerCase() || prev.city,
+      state: addressData.state || prev.state,
+      zipCode: addressData.zipCode || prev.zipCode,
+      latitude: addressData.location.lat,
+      longitude: addressData.location.lng
+    }))
+    
+    // Update city search field
+    if (addressData.city) {
+      setCitySearch(addressData.city)
+    }
+    
+    // Clear any errors
+    setFormErrors(prev => ({
+      ...prev,
+      address: '',
+      city: '',
+      state: '',
+      zipCode: ''
+    }))
   }
 
   const handleChange = (e) => {
@@ -322,6 +354,14 @@ function AddProperty() {
           unit: 'sqft'
         } : undefined,
         amenities: formData.amenities
+      }
+
+      // Add location coordinates if available
+      if (formData.latitude && formData.longitude) {
+        propertyData.location = {
+          type: 'Point',
+          coordinates: [formData.longitude, formData.latitude] // [longitude, latitude]
+        }
       }
 
       if (isEditMode) {
@@ -585,11 +625,17 @@ function AddProperty() {
                 />
               </div>
 
-              {/* Map Placeholder */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <FiMapPin className="mx-auto text-4xl text-gray-400 mb-2" />
-                <p className="text-gray-500">Map integration will be added here</p>
-                <p className="text-sm text-gray-400">Pin your property location on the map</p>
+              {/* Google Map */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Property Location on Map</label>
+                <GoogleMap
+                  onLocationSelect={handleLocationSelect}
+                  initialLocation={
+                    formData.latitude && formData.longitude
+                      ? { lat: formData.latitude, lng: formData.longitude }
+                      : null
+                  }
+                />
               </div>
             </div>
           )}
