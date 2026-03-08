@@ -16,6 +16,7 @@ function Payments() {
     lastMonth: 0
   })
   const [loading, setLoading] = useState(true)
+  const [downloading, setDownloading] = useState({})
 
   useEffect(() => {
     fetchPayments()
@@ -67,6 +68,31 @@ function Payments() {
       toast.error('Failed to load payments')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDownloadReceipt = async (paymentId) => {
+    try {
+      setDownloading(prev => ({ ...prev, [paymentId]: true }))
+      const response = await paymentsAPI.downloadReceipt(paymentId)
+      
+      // Create blob from response
+      const blob = new Blob([response.data], { type: 'text/html' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `payment-receipt-${paymentId}.html`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      
+      toast.success('Receipt downloaded successfully')
+    } catch (error) {
+      console.error('Failed to download receipt:', error)
+      toast.error('Failed to download receipt')
+    } finally {
+      setDownloading(prev => ({ ...prev, [paymentId]: false }))
     }
   }
 
@@ -287,9 +313,16 @@ function Payments() {
                     {getStatusBadge(payment.status)}
                   </td>
                   <td className="px-6 py-4">
-                    <button className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center">
-                      <FiDownload className="mr-1" /> Receipt
-                    </button>
+                    {payment.status === 'completed' && (
+                      <button 
+                        onClick={() => handleDownloadReceipt(payment._id)}
+                        disabled={downloading[payment._id]}
+                        className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center disabled:opacity-50"
+                      >
+                        <FiDownload className="mr-1" /> 
+                        {downloading[payment._id] ? 'Downloading...' : 'Receipt'}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

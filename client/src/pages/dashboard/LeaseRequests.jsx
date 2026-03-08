@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { leaseRequestsAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
 import { toast } from 'react-toastify'
@@ -11,6 +11,7 @@ import {
 
 function LeaseRequests() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuthStore()
   const [leaseRequests, setLeaseRequests] = useState([])
   const [loading, setLoading] = useState(true)
@@ -23,13 +24,27 @@ function LeaseRequests() {
 
   useEffect(() => {
     fetchLeaseRequests()
-  }, [])
+    
+    // Refresh data when user returns to this page or when location changes
+    const handleFocus = () => {
+      fetchLeaseRequests()
+    }
+    
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [location.pathname]) // Re-fetch when path changes
 
   const fetchLeaseRequests = async () => {
     try {
       setLoading(true)
       const response = await leaseRequestsAPI.getAll()
-      setLeaseRequests(response.data.data || [])
+      const requests = response.data.data || []
+      console.log('📋 Lease Requests Fetched:', requests.map(r => ({ 
+        id: r._id, 
+        status: r.status, 
+        depositPaid: r.securityDepositPaid 
+      })))
+      setLeaseRequests(requests)
     } catch (error) {
       console.error('Failed to fetch lease requests:', error)
       toast.error('Failed to load lease requests')
@@ -146,6 +161,21 @@ function LeaseRequests() {
       </div>
 
       {/* Requests List */}
+      {/* Alert for completed requests needing signatures */}
+      {leaseRequests.some(r => r.status === 'completed' && r.lease) && (
+        <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-lg mb-6">
+          <div className="flex items-center">
+            <FiCheck className="text-green-600 text-xl mr-3" />
+            <div>
+              <h3 className="text-sm font-medium text-green-800">Payment Completed! 🎉</h3>
+              <p className="text-sm text-green-700 mt-1">
+                Your security deposit has been processed and your lease has been created. Click "Sign Contract" below to complete the process.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {filteredRequests.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
           <FiFileText className="mx-auto text-5xl text-gray-300 mb-4" />
@@ -236,7 +266,7 @@ function LeaseRequests() {
                   {/* Tenant Actions */}
                   {user.role === 'tenant' && request.status === 'approved' && !request.securityDepositPaid && (
                     <button
-                      onClick={() => navigate(`/dashboard/lease-requests/${request._id}/pay`)}
+                      onClick={() => navigate(`/dashboard/pay-deposit/${request._id}`)}
                       className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition flex items-center"
                     >
                       <FiDollarSign className="mr-1" /> Pay Deposit
@@ -266,12 +296,20 @@ function LeaseRequests() {
 
                   {/* View Lease for Completed */}
                   {request.status === 'completed' && request.lease && (
-                    <button
-                      onClick={() => navigate(`/dashboard/leases/${typeof request.lease === 'object' ? request.lease._id : request.lease}`)}
-                      className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition flex items-center"
-                    >
-                      View Lease <FiChevronRight className="ml-1" />
-                    </button>
+                    <>
+                      <button
+                        onClick={() => navigate(`/dashboard/leases`)}
+                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition flex items-center font-medium"
+                      >
+                        <FiFileText className="mr-1" /> Sign Contract
+                      </button>
+                      <button
+                        onClick={() => navigate(`/dashboard/leases`)}
+                        className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition flex items-center"
+                      >
+                        View Lease <FiChevronRight className="ml-1" />
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

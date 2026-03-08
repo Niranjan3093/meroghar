@@ -272,6 +272,21 @@ function Leases() {
         </p>
       </div>
 
+      {/* Alert for unsigned leases */}
+      {leases.some(lease => lease.status === 'pending' && !hasUserSigned(lease)) && (
+        <div className="mx-6 md:mx-8 lg:mx-12 mt-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+          <div className="flex items-center">
+            <FiAlertCircle className="text-yellow-600 text-xl mr-3" />
+            <div>
+              <h3 className="text-sm font-medium text-yellow-800">Action Required: Sign Your Lease Contract</h3>
+              <p className="text-sm text-yellow-700 mt-1">
+                You have unsigned lease agreement(s). Please review and sign below to activate your lease.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* No Leases */}
       {leases.length === 0 ? (
         <div className="bg-white p-12 text-center min-h-screen flex flex-col items-center justify-center">
@@ -500,9 +515,9 @@ function Leases() {
                       {lease.status === 'pending' && !hasUserSigned(lease) && (
                         <button 
                           onClick={() => handleSignLease(lease)}
-                          className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition flex items-center text-sm"
+                          className="px-6 py-3 text-white bg-green-600 rounded-lg hover:bg-green-700 transition flex items-center text-base font-semibold shadow-md hover:shadow-lg"
                         >
-                          <FiPenTool className="mr-2" /> Sign Lease
+                          <FiPenTool className="mr-2" /> Sign Contract Now
                         </button>
                       )}
                       {lease.status === 'pending' && isWaitingForOther(lease) && (

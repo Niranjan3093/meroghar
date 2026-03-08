@@ -355,6 +355,10 @@ router.post('/:id/pay-deposit', protect, async (req, res) => {
     leaseRequest.status = 'completed';
     await leaseRequest.save();
 
+    console.log(`✅ Lease Request ${leaseRequest._id} status updated to 'completed'`);
+    console.log(`✅ Security Deposit Paid: ${leaseRequest.securityDepositPaid}`);
+    console.log(`✅ Lease Created: ${lease._id}`);
+
     // Update property status
     await Property.findByIdAndUpdate(leaseRequest.property._id, {
       status: 'rented',
@@ -376,6 +380,8 @@ router.post('/:id/pay-deposit', protect, async (req, res) => {
       .populate('host', 'name email avatar phone')
       .populate('tenant', 'name email avatar phone')
       .populate('lease');
+
+    console.log(`📋 Populated Response - Status: ${populated.status}, Paid: ${populated.securityDepositPaid}`);
 
     // Emit notification
     const io = req.app.get('io');

@@ -88,11 +88,14 @@ export const leasesAPI = {
 
 // Payments API
 export const paymentsAPI = {
+  getConfig: () => api.get('/payments/config'),
   getAll: () => api.get('/payments'),
   getById: (id) => api.get(`/payments/${id}`),
   create: (data) => api.post('/payments', data),
+  initiateKhalti: (data) => api.post('/payments/khalti/initiate', data),
   verifyKhalti: (data) => api.post('/payments/khalti/verify', data),
-  verifyEsewa: (data) => api.post('/payments/esewa/verify', data)
+  verifyEsewa: (data) => api.post('/payments/esewa/verify', data),
+  downloadReceipt: (id) => api.get(`/payments/${id}/receipt`, { responseType: 'blob' })
 }
 
 // Messages API

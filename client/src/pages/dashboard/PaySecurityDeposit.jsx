@@ -15,12 +15,14 @@ function PaySecurityDeposit() {
   const location = useLocation()
   const { user } = useAuthStore()
   const [leaseRequest, setLeaseRequest] = useState(null)
+  const [paymentConfig, setPaymentConfig] = useState(null)
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('')
   const [agreeToTerms, setAgreeToTerms] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [paymentStep, setPaymentStep] = useState('select') // 'select', 'confirm', 'processing', 'success'
+  const [completedPaymentId, setCompletedPaymentId] = useState(null)
 
   const paymentMethods = [
     { id: 'khalti', name: 'Khalti', icon: '💜', description: 'Pay with Khalti digital wallet' },
@@ -37,9 +39,36 @@ function PaySecurityDeposit() {
     return durationMap[duration] || duration
   }
 
-  // Check for eSewa callback
+  // Check for payment callbacks
   useEffect(() => {
     const params = new URLSearchParams(location.search)
+    
+    console.log('🔍 Checking for payment callback...');
+    console.log('   Current URL:', location.pathname + location.search);
+    console.log('   URL Params:', Object.fromEntries(params.entries()));
+    
+    // Check for Khalti callback
+    const pidx = params.get('pidx')
+    const status = params.get('status')
+    const txnId = params.get('transaction_id')
+    const amount = params.get('amount')
+    const purchaseOrderId = params.get('purchase_order_id')
+    const purchaseOrderName = params.get('purchase_order_name')
+    
+    console.log('   Khalti params:', { pidx, status, txnId, amount, purchaseOrderId });
+    
+    if (pidx && status) {
+      console.log(`✅ Khalti callback detected! Status: ${status}`);
+      if (status === 'Completed') {
+        handleKhaltiSuccess({ pidx, txnId, amount })
+      } else {
+        toast.error(`Khalti payment ${status.toLowerCase()}. Please try again.`)
+        navigate(`/dashboard/pay-deposit/${id}`, { replace: true })
+      }
+      return
+    }
+    
+    // Check for eSewa callback
     const oid = params.get('oid')
     const amt = params.get('amt')
     const refId = params.get('refId')
@@ -51,6 +80,53 @@ function PaySecurityDeposit() {
       navigate(`/dashboard/pay-deposit/${id}`, { replace: true })
     }
   }, [location])
+
+  const handleKhaltiSuccess = async (params) => {
+    try {
+      console.log('💳 Processing Khalti payment...', params);
+      setProcessing(true)
+      setPaymentStep('processing')
+      
+      // Verify payment with backend
+      console.log('🔐 Verifying payment with backend...');
+      const verifyResponse = await paymentsAPI.verifyKhalti({
+        pidx: params.pidx,
+        amount: params.amount
+      })
+      
+      console.log('✅ Verification response:', verifyResponse.data);
+      
+      if (verifyResponse.data.success) {
+        // Payment verified, create lease
+        console.log('📝 Creating lease and processing payment...');
+        const response = await leaseRequestsAPI.payDeposit(id, {
+          paymentMethod: 'khalti',
+          transactionId: params.txnId || params.pidx,
+          paymentGatewayResponse: verifyResponse.data.data
+        })
+
+        console.log('✅ Payment processing complete!', response.data);
+        console.log('   Lease Request Status:', response.data.data?.status);
+        console.log('   Security Deposit Paid:', response.data.data?.securityDepositPaid);
+
+        setPaymentStep('success')
+        setCompletedPaymentId(response.data.payment?._id)
+        toast.success('Payment successful! Your lease has been created. You can now sign the contract.')
+        
+        setTimeout(() => {
+          console.log('🔄 Redirecting to lease requests page...');
+          navigate('/dashboard/lease-requests', { replace: true })
+        }, 3000)
+      } else {
+        throw new Error(verifyResponse.data.message || 'Payment verification failed')
+      }
+    } catch (error) {
+      console.error('Khalti verification failed:', error)
+      toast.error(error.message || 'Payment verification failed')
+      navigate(`/dashboard/pay-deposit/${id}`, { replace: true })
+      setProcessing(false)
+    }
+  }
 
   const handleEsewaSuccess = async (params) => {
     try {
@@ -69,11 +145,12 @@ function PaySecurityDeposit() {
         })
 
         setPaymentStep('success')
-        toast.success('Payment successful! Your lease has been created.')
+        setCompletedPaymentId(response.data.payment?._id)
+        toast.success('Payment successful! Your lease has been created. You can now sign the contract.')
         
         setTimeout(() => {
-          navigate(`/dashboard/leases/${response.data.lease._id}`)
-        }, 2000)
+          navigate('/dashboard/lease-requests', { replace: true })
+        }, 3000)
       } else {
         throw new Error(verifyResponse.data.message || 'Payment verification failed')
       }
@@ -86,11 +163,23 @@ function PaySecurityDeposit() {
   }
 
   useEffect(() => {
-    // Fetch lease request when id is available
+    // Fetch payment config and lease request when id is available
     if (id && !location.pathname.includes('/esewa-success')) {
+      fetchPaymentConfig()
       fetchLeaseRequest()
     }
   }, [id])
+
+  const fetchPaymentConfig = async () => {
+    try {
+      const response = await paymentsAPI.getConfig()
+      console.log('Payment Config Response:', response.data.data)
+      setPaymentConfig(response.data.data)
+    } catch (error) {
+      console.error('Failed to fetch payment config:', error)
+      toast.error('Failed to load payment configuration')
+    }
+  }
 
   const fetchLeaseRequest = async () => {
     try {
@@ -148,72 +237,43 @@ function PaySecurityDeposit() {
 
     try {
       if (selectedPaymentMethod === 'khalti') {
-        // Khalti payment integration
-        const khaltiConfig = {
-          publicKey: 'test_public_key_dc74e0fd57cb46cd93832aee0a390234',
+        // Check if payment config is loaded
+        if (!paymentConfig?.khalti?.enabled) {
+          console.error('Payment config missing:', paymentConfig)
+          toast.error('Khalti payment gateway is not configured. Please contact support.')
+          setProcessing(false)
+          setPaymentStep('select')
+          return
+        }
+
+        // Initiate payment with backend (server-side)
+        const initiateResponse = await paymentsAPI.initiateKhalti({
+          amount: leaseRequest.securityDeposit,
           productIdentity: id,
           productName: `Security Deposit - ${leaseRequest.property.title}`,
           productUrl: window.location.origin,
-          eventHandler: {
-            onSuccess: async (payload) => {
-              try {
-                // Verify payment with backend
-                const verifyResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5500/api'}/payments/khalti/verify`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                  },
-                  body: JSON.stringify({
-                    token: payload.token,
-                    amount: leaseRequest.securityDeposit
-                  })
-                });
+          returnUrl: `${window.location.origin}/dashboard/pay-deposit/${id}`
+        });
 
-                const verifyData = await verifyResponse.json();
+        console.log('🚀 Khalti Initiation Response:', initiateResponse.data);
 
-                if (verifyData.success) {
-                  // Payment verified, create lease
-                  const response = await leaseRequestsAPI.payDeposit(id, {
-                    paymentMethod: 'khalti',
-                    transactionId: payload.idx,
-                    paymentGatewayResponse: verifyData.data
-                  });
-
-                  setPaymentStep('success');
-                  toast.success('Payment successful! Your lease has been created.');
-                  
-                  setTimeout(() => {
-                    navigate(`/dashboard/leases/${response.data.lease._id}`);
-                  }, 2000);
-                } else {
-                  throw new Error(verifyData.message || 'Payment verification failed');
-                }
-              } catch (error) {
-                console.error('Payment verification failed:', error);
-                setPaymentStep('select');
-                toast.error(error.message || 'Payment verification failed');
-                setProcessing(false);
-              }
-            },
-            onError: (error) => {
-              console.error('Khalti payment error:', error);
-              setPaymentStep('select');
-              toast.error('Payment failed. Please try again.');
-              setProcessing(false);
-            },
-            onClose: () => {
-              setPaymentStep('select');
-              setProcessing(false);
-            }
-          },
-          paymentPreference: ['KHALTI', 'EBANKING', 'MOBILE_BANKING', 'CONNECT_IPS', 'SCT']
-        };
-
-        const checkout = new window.KhaltiCheckout(khaltiConfig);
-        checkout.show({ amount: leaseRequest.securityDeposit * 100 }); // Amount in paisa
+        if (initiateResponse.data.success && initiateResponse.data.data.payment_url) {
+          // Redirect to Khalti payment page
+          console.log('🔗 Redirecting to:', initiateResponse.data.data.payment_url);
+          window.location.href = initiateResponse.data.data.payment_url;
+        } else {
+          throw new Error(initiateResponse.data.message || 'Payment initiation failed');
+        }
         
       } else if (selectedPaymentMethod === 'esewa') {
+        // Check if payment config is loaded
+        if (!paymentConfig?.esewa?.merchantId) {
+          toast.error('Payment configuration not loaded. Please try again.')
+          setProcessing(false)
+          setPaymentStep('select')
+          return
+        }
+
         // eSewa payment integration
         const esewaPath = 'https://eSewa.com.np/epay/main';
         const params = {
@@ -223,7 +283,7 @@ function PaySecurityDeposit() {
           txAmt: 0,
           tAmt: leaseRequest.securityDeposit,
           pid: `LEASE-${id}-${Date.now()}`,
-          scd: 'EPAYTEST', // Merchant code
+          scd: paymentConfig.esewa.merchantId, // Merchant code
           su: `${window.location.origin}/dashboard/pay-deposit/${id}/esewa-success`,
           fu: `${window.location.origin}/dashboard/pay-deposit/${id}/esewa-failure`
         };
@@ -543,7 +603,32 @@ function PaySecurityDeposit() {
                   <FiCheck className="w-8 h-8 text-green-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Successful!</h3>
-                <p className="text-gray-600">Your lease has been created. Redirecting...</p>
+                <p className="text-gray-600 mb-4">Your lease has been created. Redirecting to leases page...</p>
+                {completedPaymentId && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await paymentsAPI.downloadReceipt(completedPaymentId)
+                        const blob = new Blob([response.data], { type: 'text/html' })
+                        const url = window.URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `payment-receipt-${completedPaymentId}.html`
+                        document.body.appendChild(a)
+                        a.click()
+                        document.body.removeChild(a)
+                        window.URL.revokeObjectURL(url)
+                        toast.success('Receipt downloaded!')
+                      } catch (error) {
+                        console.error('Failed to download receipt:', error)
+                        toast.error('Failed to download receipt')
+                      }
+                    }}
+                    className="mt-4 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center mx-auto"
+                  >
+                    <FiCheck className="mr-2" /> Download Receipt
+                  </button>
+                )}
               </>
             )}
           </div>
