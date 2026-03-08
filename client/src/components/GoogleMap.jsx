@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
-import { GoogleMap as GoogleMapComponent, LoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap as GoogleMapComponent, useLoadScript, Marker } from '@react-google-maps/api';
 
 const containerStyle = {
   width: '100%',
-  height: '400px',
-  borderRadius: '8px'
+  height: '450px',
+  borderRadius: '8px',
+  border: '2px solid #e5e7eb'
 };
 
 // Default center: Kathmandu, Nepal
@@ -13,16 +14,24 @@ const defaultCenter = {
   lng: 85.3240
 };
 
-const GoogleMap = ({ onLocationSelect, initialLocation }) => {
-  const [selectedLocation, setSelectedLocation] = useState(initialLocation || defaultCenter);
+const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
+  const [selectedLocation, setSelectedLocation] = useState(initialLocation || null);
   const [map, setMap] = useState(null);
+
+  // Load Google Maps API
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+  });
 
   // Update selected location when initialLocation changes
   useEffect(() => {
     if (initialLocation) {
       setSelectedLocation(initialLocation);
+      if (map) {
+        map.panTo(initialLocation);
+      }
     }
-  }, [initialLocation]);
+  }, [initialLocation, map]);
 
   const onLoad = useCallback((map) => {
     setMap(map);
@@ -32,126 +41,129 @@ const GoogleMap = ({ onLocationSelect, initialLocation }) => {
     setMap(null);
   }, []);
 
-  const handleMapClick = useCallback(async (event) => {
-    const lat = event.latLng.lat();
-    const lng = event.latLng.lng();
-    
-    setSelectedLocation({ lat, lng });
-
-    // Reverse geocoding to get address details
-    try {
-      const geocoder = new window.google.maps.Geocoder();
-      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-        if (status === 'OK' && results[0]) {
-          const addressComponents = results[0].address_components;
-          
-          // Extract address details
-          let street = '';
-          let city = '';
-          let state = '';
-          let zipCode = '';
-
-          addressComponents.forEach(component => {
-            const types = component.types;
-            
-            if (types.includes('street_number')) {
-              street = component.long_name + ' ' + street;
-            }
-            if (types.includes('route')) {
-              street += component.long_name;
-            }
-            if (types.includes('locality')) {
-              city = component.long_name;
-            }
-            if (types.includes('administrative_area_level_1')) {
-              state = component.long_name;
-            }
-            if (types.includes('postal_code')) {
-              zipCode = component.long_name;
-            }
-          });
-
-          // If no city found, try sublocality
-          if (!city) {
-            addressComponents.forEach(component => {
-              if (component.types.includes('sublocality') || component.types.includes('sublocality_level_1')) {
-                city = component.long_name;
-              }
-            });
-          }
-
-          // Call the callback with address data
-          if (onLocationSelect) {
-            onLocationSelect({
-              street: street.trim() || results[0].formatted_address,
-              city: city,
-              state: state,
-              zipCode: zipCode,
-              location: { lat, lng }
-            });
-          }
-        } else {
-          // If geocoding fails, still provide the coordinates
-          if (onLocationSelect) {
-            onLocationSelect({
-              street: '',
-              city: '',
-              state: '',
-              zipCode: '',
-              location: { lat, lng }
-            });
-          }
-        }
+  const handleLocationUpdate = useCallback((lat, lng) => {
+    // Only update coordinates, no address auto-fill
+    if (onLocationSelect) {
+      onLocationSelect({
+        location: { lat, lng }
       });
-    } catch (error) {
-      console.error('Error getting address:', error);
-      // Still provide the coordinates even if geocoding fails
-      if (onLocationSelect) {
-        onLocationSelect({
-          street: '',
-          city: '',
-          state: '',
-          zipCode: '',
-          location: { lat, lng }
-        });
-      }
     }
   }, [onLocationSelect]);
 
-  // Get API key from environment variable (you'll need to add this to .env)
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+  const handleMapClick = useCallback((event) => {
+    if (readOnly) return; // Don't allow clicking in read-only mode
+    
+    const lat = event.latLng.lat();
+    const lng = event.latLng.lng();
+    
+    const newLocation = { lat, lng };
+    setSelectedLocation(newLocation);
+    handleLocationUpdate(lat, lng);
+  }, [handleLocationUpdate, readOnly]);
 
-  if (!apiKey) {
+  const handleMarkerDragEnd = useCallback((event) => {
+    if (readOnly) return; // Don't allow dragging in read-only mode
+    
+    const lat = event.latLng.lat();
+    const lng = event.latLng.lng();
+    
+    const newLocation = { lat, lng };
+    setSelectedLocation(newLocation);
+    handleLocationUpdate(lat, lng);
+  }, [handleLocationUpdate, readOnly]);
+
+  if (loadError) {
     return (
-      <div style={containerStyle} className="bg-gray-100 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300">
+      <div style={containerStyle} className="bg-red-50 flex items-center justify-center rounded-lg border-2 border-red-200">
         <div className="text-center p-6">
-          <p className="text-gray-600 mb-2">Google Maps API key not configured</p>
-          <p className="text-sm text-gray-500">
-            Add VITE_GOOGLE_MAPS_API_KEY to your .env file
-          </p>
+          <p className="text-red-600 mb-2 font-medium">Error loading Google Maps</p>
+          <p className="text-sm text-red-500">{loadError.message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div style={containerStyle} className="bg-gray-50 flex items-center justify-center rounded-lg">
+        <div className="text-center p-6">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-3"></div>
+          <p className="text-gray-600">Loading map...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!import.meta.env.VITE_GOOGLE_MAPS_API_KEY) {
+    return (
+      <div style={containerStyle} className="bg-yellow-50 flex items-center justify-center rounded-lg border-2 border-yellow-200">
+        <div className="text-center p-6">
+          <p className="text-yellow-800 mb-2 font-medium">Google Maps API key not configured</p>
+          <p className="text-sm text-yellow-700">Add VITE_GOOGLE_MAPS_API_KEY to your .env file</p>
         </div>
       </div>
     );
   }
 
   return (
-    <LoadScript googleMapsApiKey={apiKey}>
+    <div className="relative">
       <GoogleMapComponent
         mapContainerStyle={containerStyle}
-        center={selectedLocation}
-        zoom={13}
-        onClick={handleMapClick}
+        center={selectedLocation || defaultCenter}
+        zoom={15}
+        onClick={readOnly ? undefined : handleMapClick}
         onLoad={onLoad}
         onUnmount={onUnmount}
         options={{
           streetViewControl: false,
           mapTypeControl: true,
           fullscreenControl: true,
+          zoomControl: true,
+          clickableIcons: false,
+          disableDoubleClickZoom: false,
         }}
       >
-        {selectedLocation && <Marker position={selectedLocation} />}
+        {selectedLocation && (
+          <Marker
+            position={selectedLocation}
+            draggable={!readOnly}
+            onDragEnd={readOnly ? undefined : handleMarkerDragEnd}
+            animation={window.google?.maps?.Animation?.DROP}
+            title={readOnly ? "Property Location" : "Property Location (Drag to adjust)"}
+          />
+        )}
       </GoogleMapComponent>
-    </LoadScript>
+      
+      {!readOnly && (
+        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800 flex items-center gap-2">
+            <span className="text-blue-600">📍</span>
+            <span>
+              <strong>Click on the map</strong> to pin your property location, or <strong>drag the marker</strong> to adjust the exact position.
+            </span>
+          </p>
+          {selectedLocation && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-green-600 font-medium">✓</span>
+              <p className="text-xs text-green-700">
+                Location pinned: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {readOnly && selectedLocation && (
+        <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <p className="text-sm text-gray-700 flex items-center gap-2">
+            <span className="text-gray-600">📍</span>
+            <span>
+              This is the location pinned by the property owner.
+            </span>
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
 

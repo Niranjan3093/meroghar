@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { adminAPI } from '../../../utils/api'
 import PropertyStatusBadge from '../../../components/PropertyStatusBadge'
-import { FiCheck, FiX, FiMapPin, FiDollarSign, FiHome, FiUser } from 'react-icons/fi'
+import GoogleMap from '../../../components/GoogleMap'
+import { FiCheck, FiX, FiMapPin, FiDollarSign, FiHome, FiUser, FiMap } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 
 function PropertyVerification() {
@@ -11,6 +12,8 @@ function PropertyVerification() {
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
   const [processingId, setProcessingId] = useState(null)
+  const [showMapModal, setShowMapModal] = useState(false)
+  const [selectedPropertyForMap, setSelectedPropertyForMap] = useState(null)
 
   useEffect(() => {
     fetchPendingProperties()
@@ -78,6 +81,16 @@ function PropertyVerification() {
     setShowRejectModal(false)
     setRejectionReason('')
     setSelectedProperty(null)
+  }
+
+  const openMapModal = (property) => {
+    setSelectedPropertyForMap(property)
+    setShowMapModal(true)
+  }
+
+  const closeMapModal = () => {
+    setShowMapModal(false)
+    setSelectedPropertyForMap(null)
   }
 
   if (loading) {
@@ -199,6 +212,27 @@ function PropertyVerification() {
                   </div>
                 )}
 
+                {/* Location Info */}
+                {property.coordinates && property.coordinates.coordinates && property.coordinates.coordinates.length === 2 && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-green-700">
+                        <FiMapPin className="mr-2" />
+                        <span className="text-sm font-medium">
+                          Location Pinned: {property.coordinates.coordinates[1].toFixed(6)}, {property.coordinates.coordinates[0].toFixed(6)}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => openMapModal(property)}
+                        className="btn btn-sm bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                      >
+                        <FiMap />
+                        View on Map
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t">
                   <button
@@ -255,6 +289,66 @@ function PropertyVerification() {
                 disabled={processingId || !rejectionReason.trim()}
               >
                 {processingId ? 'Rejecting...' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Map Modal */}
+      {showMapModal && selectedPropertyForMap && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-2xl font-bold mb-1">{selectedPropertyForMap.title}</h3>
+                <p className="text-gray-600 flex items-center gap-2">
+                  <FiMapPin />
+                  {selectedPropertyForMap.address?.street}, {selectedPropertyForMap.address?.city}
+                  {selectedPropertyForMap.address?.state && `, ${selectedPropertyForMap.address.state}`}
+                </p>
+              </div>
+              <button
+                onClick={closeMapModal}
+                className="text-gray-500 hover:text-gray-700 p-2"
+              >
+                <FiX className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <GoogleMap
+                readOnly={true}
+                initialLocation={{
+                  lat: selectedPropertyForMap.coordinates.coordinates[1],
+                  lng: selectedPropertyForMap.coordinates.coordinates[0]
+                }}
+              />
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-800">
+                <strong>📍 Coordinates:</strong> Latitude {selectedPropertyForMap.coordinates.coordinates[1].toFixed(6)}, Longitude {selectedPropertyForMap.coordinates.coordinates[0].toFixed(6)}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={closeMapModal}
+                className="btn bg-gray-200 hover:bg-gray-300 text-gray-800"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  handleApprove(selectedPropertyForMap._id);
+                  closeMapModal();
+                }}
+                disabled={processingId === selectedPropertyForMap._id}
+                className="btn btn-primary flex items-center gap-2"
+              >
+                <FiCheck />
+                {processingId === selectedPropertyForMap._id ? 'Approving...' : 'Approve Property'}
               </button>
             </div>
           </div>

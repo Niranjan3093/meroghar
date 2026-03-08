@@ -207,31 +207,19 @@ function AddProperty() {
     if (formErrors.city) setFormErrors({ ...formErrors, city: '' })
   }
 
-  const handleLocationSelect = (addressData) => {
-    // Update form fields with data from map
+  const handleLocationSelect = (locationData) => {
+    // Only update coordinates from the map
     setFormData(prev => ({
       ...prev,
-      address: addressData.street || prev.address,
-      city: addressData.city?.toLowerCase() || prev.city,
-      state: addressData.state || prev.state,
-      zipCode: addressData.zipCode || prev.zipCode,
-      latitude: addressData.location.lat,
-      longitude: addressData.location.lng
-    }))
+      latitude: locationData.location.lat,
+      longitude: locationData.location.lng
+    }));
     
-    // Update city search field
-    if (addressData.city) {
-      setCitySearch(addressData.city)
-    }
-    
-    // Clear any errors
+    // Clear location error if exists
     setFormErrors(prev => ({
       ...prev,
-      address: '',
-      city: '',
-      state: '',
-      zipCode: ''
-    }))
+      location: ''
+    }));
   }
 
   const handleChange = (e) => {
@@ -257,6 +245,7 @@ function AddProperty() {
     } else if (step === 2) {
       if (!formData.address.trim()) errs.address = 'Street address is required'
       if (!formData.city) errs.city = 'City is required'
+      if (!formData.latitude || !formData.longitude) errs.location = 'Please pin the property location on the map'
     } else if (step === 3) {
       if (formData.area && (isNaN(formData.area) || Number(formData.area) <= 0)) errs.area = 'Area must be a positive number'
       if (formData.area && Number(formData.area) > 100000) errs.area = 'Area seems too large'
@@ -627,7 +616,9 @@ function AddProperty() {
 
               {/* Google Map */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Property Location on Map</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property Location on Map *
+                </label>
                 <GoogleMap
                   onLocationSelect={handleLocationSelect}
                   initialLocation={
@@ -636,6 +627,9 @@ function AddProperty() {
                       : null
                   }
                 />
+                {formErrors.location && (
+                  <p className="text-red-500 text-sm mt-2">{formErrors.location}</p>
+                )}
               </div>
             </div>
           )}

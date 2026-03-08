@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { adminAPI } from '../../../utils/api'
 import PropertyStatusBadge from '../../../components/PropertyStatusBadge'
+import GoogleMap from '../../../components/GoogleMap'
 import { FiCheck, FiX, FiMapPin, FiDollarSign, FiHome, FiUser } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 
@@ -196,6 +197,25 @@ function PropertyVerification() {
                         </span>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Property Location Map */}
+                {property.location && property.location.coordinates && property.location.coordinates.length === 2 && (
+                  <div className="mb-4">
+                    <h4 className="font-semibold mb-2">Property Location:</h4>
+                    <div className="border-2 border-gray-200 rounded-lg overflow-hidden">
+                      <GoogleMap
+                        initialLocation={{
+                          lat: property.location.coordinates[1],
+                          lng: property.location.coordinates[0]
+                        }}
+                        onLocationSelect={() => {}} // Read-only mode
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Coordinates: {property.location.coordinates[1].toFixed(6)}, {property.location.coordinates[0].toFixed(6)}
+                    </p>
                   </div>
                 )}
 
