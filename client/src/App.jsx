@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 
 // Layouts
@@ -94,167 +95,181 @@ const DashboardIndex = () => {
   }
 }
 
+const ScrollToTop = () => {
+  const { pathname, search } = useLocation()
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, left: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+  }, [pathname, search])
+
+  return null
+}
+
 function App() {
   return (
-    <Routes>
-      {/* Public Routes - Redirect to dashboard if logged in */}
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={
-          <PublicRoute>
-            <Home />
-          </PublicRoute>
-        } />
-        <Route path="admin" element={
-          <PublicRoute>
-            <AdminAuth />
-          </PublicRoute>
-        } />
-        <Route path="login" element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        } />
-        <Route path="register" element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        } />
-        <Route path="forgot-password" element={
-          <PublicRoute>
-            <ForgotPassword />
-          </PublicRoute>
-        } />
-        <Route path="reset-password" element={
-          <PublicRoute>
-            <ResetPassword />
-          </PublicRoute>
-        } />
-        <Route path="verify-email" element={<VerifyEmail />} />
-        <Route path="oauth-callback" element={<OAuthCallback />} />
-        <Route path="select-role" element={
+    <>
+      <ScrollToTop />
+      <Routes>
+        {/* Public Routes - Redirect to dashboard if logged in */}
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={
+            <PublicRoute>
+              <Home />
+            </PublicRoute>
+          } />
+          <Route path="admin" element={
+            <PublicRoute>
+              <AdminAuth />
+            </PublicRoute>
+          } />
+          <Route path="login" element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } />
+          <Route path="register" element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          } />
+          <Route path="forgot-password" element={
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
+          } />
+          <Route path="reset-password" element={
+            <PublicRoute>
+              <ResetPassword />
+            </PublicRoute>
+          } />
+          <Route path="verify-email" element={<VerifyEmail />} />
+          <Route path="oauth-callback" element={<OAuthCallback />} />
+          <Route path="select-role" element={
+            <ProtectedRoute>
+              <SelectRole />
+            </ProtectedRoute>
+          } />
+          <Route path="properties" element={<Properties />} />
+          <Route path="properties/:id" element={<PropertyDetails />} />
+        </Route>
+
+        {/* Protected Dashboard Routes */}
+        <Route path="/dashboard" element={
           <ProtectedRoute>
-            <SelectRole />
+            <DashboardLayout />
           </ProtectedRoute>
-        } />
-        <Route path="properties" element={<Properties />} />
-        <Route path="properties/:id" element={<PropertyDetails />} />
-      </Route>
+        }>
+          {/* Default Dashboard Route */}
+          <Route index element={<DashboardIndex />} />
+          
+          {/* Host Routes */}
+          <Route path="host" element={
+            <ProtectedRoute allowedRoles={['host']}>
+              <HostDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="host/properties" element={
+            <ProtectedRoute allowedRoles={['host']}>
+              <MyProperties />
+            </ProtectedRoute>
+          } />
+          <Route path="host/properties/add" element={
+            <ProtectedRoute allowedRoles={['host']}>
+              <AddProperty />
+            </ProtectedRoute>
+          } />
+          <Route path="host/properties/edit/:id" element={
+            <ProtectedRoute allowedRoles={['host']}>
+              <AddProperty />
+            </ProtectedRoute>
+          } />
 
-      {/* Protected Dashboard Routes */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <DashboardLayout />
-        </ProtectedRoute>
-      }>
-        {/* Default Dashboard Route */}
-        <Route index element={<DashboardIndex />} />
-        
-        {/* Host Routes */}
-        <Route path="host" element={
-          <ProtectedRoute allowedRoles={['host']}>
-            <HostDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="host/properties" element={
-          <ProtectedRoute allowedRoles={['host']}>
-            <MyProperties />
-          </ProtectedRoute>
-        } />
-        <Route path="host/properties/add" element={
-          <ProtectedRoute allowedRoles={['host']}>
-            <AddProperty />
-          </ProtectedRoute>
-        } />
-        <Route path="host/properties/edit/:id" element={
-          <ProtectedRoute allowedRoles={['host']}>
-            <AddProperty />
-          </ProtectedRoute>
-        } />
+          {/* Tenant Routes */}
+          <Route path="tenant" element={
+            <ProtectedRoute allowedRoles={['tenant']}>
+              <TenantDashboard />
+            </ProtectedRoute>
+          } />
 
-        {/* Tenant Routes */}
-        <Route path="tenant" element={
-          <ProtectedRoute allowedRoles={['tenant']}>
-            <TenantDashboard />
-          </ProtectedRoute>
-        } />
+          {/* Admin Routes */}
+          <Route path="admin" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="admin/properties" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminProperties />
+            </ProtectedRoute>
+          } />
+          <Route path="admin/properties/pending" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Navigate to="/dashboard/admin/properties?verification=pending" replace />
+            </ProtectedRoute>
+          } />
+          <Route path="admin/users" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <UserManagement />
+            </ProtectedRoute>
+          } />
+          <Route path="admin/leases" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminLeases />
+            </ProtectedRoute>
+          } />
+          <Route path="admin/settings" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminSettings />
+            </ProtectedRoute>
+          } />
+          <Route path="admin/reports" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminAnalytics />
+            </ProtectedRoute>
+          } />
 
-        {/* Admin Routes */}
-        <Route path="admin" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="admin/properties" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminProperties />
-          </ProtectedRoute>
-        } />
-        <Route path="admin/properties/pending" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <Navigate to="/dashboard/admin/properties?verification=pending" replace />
-          </ProtectedRoute>
-        } />
-        <Route path="admin/users" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <UserManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="admin/leases" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminLeases />
-          </ProtectedRoute>
-        } />
-        <Route path="admin/settings" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminSettings />
-          </ProtectedRoute>
-        } />
-        <Route path="admin/reports" element={
-          <ProtectedRoute allowedRoles={['admin']}>
-            <AdminAnalytics />
-          </ProtectedRoute>
-        } />
+          {/* Browse Properties (inside dashboard for all roles) */}
+          <Route path="properties" element={<Properties />} />
+          <Route path="properties/:id" element={<PropertyDetails />} />
 
-        {/* Browse Properties (inside dashboard for all roles) */}
-        <Route path="properties" element={<Properties />} />
-        <Route path="properties/:id" element={<PropertyDetails />} />
-
-        {/* Common Routes */}
-        <Route path="messages" element={<Messages />} />
-        <Route path="visit-requests" element={
-          <ProtectedRoute allowedRoles={['host', 'tenant']}>
-            <VisitRequestsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="leases" element={<Leases />} />
-        <Route path="leases/:id" element={<LeaseDetails />} />
-        <Route path="lease-requests" element={<LeaseRequests />} />
-        <Route path="lease-requests/:id/pay" element={
-          <ProtectedRoute allowedRoles={['tenant']}>
-            <PaySecurityDeposit />
-          </ProtectedRoute>
-        } />
-        <Route path="pay-deposit/:id" element={
-          <ProtectedRoute allowedRoles={['tenant']}>
-            <PaySecurityDeposit />
-          </ProtectedRoute>
-        } />
-        <Route path="pay-deposit/:id/esewa-success" element={
-          <ProtectedRoute allowedRoles={['tenant']}>
-            <PaySecurityDeposit />
-          </ProtectedRoute>
-        } />
-        <Route path="pay-deposit/:id/esewa-failure" element={
-          <ProtectedRoute allowedRoles={['tenant']}>
-            <PaySecurityDeposit />
-          </ProtectedRoute>
-        } />
-        <Route path="payments" element={<Payments />} />
-        <Route path="maintenance" element={<Maintenance />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="notifications" element={<Notifications />} />
-      </Route>
-    </Routes>
+          {/* Common Routes */}
+          <Route path="messages" element={<Messages />} />
+          <Route path="visit-requests" element={
+            <ProtectedRoute allowedRoles={['host', 'tenant']}>
+              <VisitRequestsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="leases" element={<Leases />} />
+          <Route path="leases/:id" element={<LeaseDetails />} />
+          <Route path="lease-requests" element={<LeaseRequests />} />
+          <Route path="lease-requests/:id/pay" element={
+            <ProtectedRoute allowedRoles={['tenant']}>
+              <PaySecurityDeposit />
+            </ProtectedRoute>
+          } />
+          <Route path="pay-deposit/:id" element={
+            <ProtectedRoute allowedRoles={['tenant']}>
+              <PaySecurityDeposit />
+            </ProtectedRoute>
+          } />
+          <Route path="pay-deposit/:id/esewa-success" element={
+            <ProtectedRoute allowedRoles={['tenant']}>
+              <PaySecurityDeposit />
+            </ProtectedRoute>
+          } />
+          <Route path="pay-deposit/:id/esewa-failure" element={
+            <ProtectedRoute allowedRoles={['tenant']}>
+              <PaySecurityDeposit />
+            </ProtectedRoute>
+          } />
+          <Route path="payments" element={<Payments />} />
+          <Route path="maintenance" element={<Maintenance />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="notifications" element={<Notifications />} />
+        </Route>
+      </Routes>
+    </>
   )
 }
 

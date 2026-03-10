@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../store/authStore'
 import Sidebar from '../components/dashboard/Sidebar'
 import DashboardNavbar from '../components/dashboard/DashboardNavbar'
@@ -10,12 +10,21 @@ function DashboardLayout() {
   const { logout } = useAuthStore()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const contentRef = useRef(null)
   const isLeaseDetailsPage = /^\/dashboard\/leases\/[^/]+$/.test(location.pathname)
 
   // Close sidebar when route changes
   useEffect(() => {
     setSidebarOpen(false)
   }, [location.pathname])
+
+  // Reset dashboard content scroll on route changes.
+  useEffect(() => {
+    if (contentRef.current) {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      contentRef.current.scrollTo({ top: 0, left: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+    }
+  }, [location.pathname, location.search])
 
   const handleLogoutRequest = () => {
     setShowLogoutModal(true)
@@ -44,7 +53,7 @@ function DashboardLayout() {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onLogoutClick={handleLogoutRequest} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <DashboardNavbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-y-auto w-full">
+        <main ref={contentRef} className="flex-1 overflow-y-auto w-full">
           {isFullBleed ? (
             <Outlet />
           ) : (
