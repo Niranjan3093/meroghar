@@ -1,18 +1,38 @@
 import { useState, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { propertiesAPI, usersAPI } from '../../utils/api'
-import { FiSearch, FiMapPin, FiHome, FiFilter, FiHeart } from 'react-icons/fi'
+import { GoogleMap as GoogleMapComponent, Marker, useLoadScript } from '@react-google-maps/api'
+import { FiSearch, FiMapPin, FiHome, FiFilter, FiHeart, FiNavigation } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 import { useAuthStore } from '../../store/authStore'
 
+const mapContainerStyle = {
+  width: '100%',
+  height: '420px',
+  borderRadius: '12px'
+}
+
+const defaultMapCenter = {
+  lat: 27.7172,
+  lng: 85.3240
+}
+
 function Properties() {
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [properties, setProperties] = useState([])
+  const [mapProperties, setMapProperties] = useState([])
   const [loading, setLoading] = useState(true)
+  const [nearbyLoading, setNearbyLoading] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 })
   const [favorites, setFavorites] = useState(new Set())
+  const [nearbyRadius, setNearbyRadius] = useState(5)
+  const [mapCenter, setMapCenter] = useState(defaultMapCenter)
+  const [mapZoom, setMapZoom] = useState(11)
+  const [userLocation, setUserLocation] = useState(null)
+  const [isNearbyMode, setIsNearbyMode] = useState(false)
   
   const [filters, setFilters] = useState({
     city: searchParams.get('city') || '',
@@ -23,6 +43,10 @@ function Properties() {
   })
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
+
+  const { isLoaded: isMapLoaded, loadError: mapLoadError } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+  })
 
   const cities = ['Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Biratnagar', 'Birgunj']
   const propertyTypes = ['apartment', 'room', 'house', 'office', 'studio', 'villa']
@@ -40,6 +64,7 @@ function Properties() {
   const fetchProperties = async () => {
     try {
       setLoading(true)
+      setIsNearbyMode(false)
       const params = {
         page: searchParams.get('page') || 1,
         limit: 12,
@@ -55,6 +80,22 @@ function Properties() {
       const response = await propertiesAPI.getAll(params)
       setProperties(response.data.data)
       setPagination(response.data.pagination)
+
+      const mapResponse = await propertiesAPI.getAll({ ...params, page: 1, limit: 200 })
+      const pinnedProperties = (mapResponse.data.data || []).filter(
+        (property) => property.location?.coordinates?.length === 2
+      )
+      setMapProperties(pinnedProperties)
+
+      if (pinnedProperties.length > 0) {
+        const firstPropertyCoordinates = pinnedProperties[0].location.coordinates
+        setMapCenter({ lat: firstPropertyCoordinates[1], lng: firstPropertyCoordinates[0] })
+        setMapZoom(11)
+      } else {
+        setMapCenter(defaultMapCenter)
+        setMapZoom(11)
+      }
+      setUserLocation(null)
     } catch (error) {
       console.error('Failed to fetch properties:', error)
       toast.error('Failed to load properties')
@@ -114,9 +155,22 @@ function Properties() {
   const handleSearchQuery = async () => {
     try {
       setLoading(true)
+      setIsNearbyMode(false)
       const response = await propertiesAPI.search(searchQuery)
       setProperties(response.data.data)
       setPagination({ page: 1, pages: 1, total: response.data.count })
+
+      const pinnedProperties = (response.data.data || []).filter(
+        (property) => property.location?.coordinates?.length === 2
+      )
+      setMapProperties(pinnedProperties)
+
+      if (pinnedProperties.length > 0) {
+        const firstPropertyCoordinates = pinnedProperties[0].location.coordinates
+        setMapCenter({ lat: firstPropertyCoordinates[1], lng: firstPropertyCoordinates[0] })
+        setMapZoom(11)
+      }
+      setUserLocation(null)
     } catch (error) {
       console.error('Search failed:', error)
       toast.error('Search failed')
@@ -140,6 +194,61 @@ function Properties() {
     setFilters({ city: '', propertyType: '', minRent: '', maxRent: '', amenities: '' })
     setSearchParams({})
     setSearchQuery('')
+    setIsNearbyMode(false)
+  }
+
+  const findNearbyProperties = async () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported on this browser')
+      return
+    }
+
+    setNearbyLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+
+        try {
+          const response = await propertiesAPI.getNearby(lng, lat, nearbyRadius)
+          const nearbyProperties = response.data.data || []
+
+          setProperties(nearbyProperties)
+          setMapProperties(nearbyProperties.filter((property) => property.location?.coordinates?.length === 2))
+          setPagination({ page: 1, pages: 1, total: response.data.count || nearbyProperties.length })
+
+          setUserLocation({ lat, lng })
+          setMapCenter({ lat, lng })
+          setMapZoom(13)
+          setIsNearbyMode(true)
+
+          if (nearbyProperties.length === 0) {
+            toast.info('No properties found near your location')
+          } else {
+            toast.success(`Found ${nearbyProperties.length} nearby properties`)
+          }
+        } catch (error) {
+          console.error('Nearby search failed:', error)
+          toast.error(error.response?.data?.message || 'Failed to find nearby properties')
+        } finally {
+          setNearbyLoading(false)
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error)
+        toast.error('Unable to access your location')
+        setNearbyLoading(false)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    )
+  }
+
+  const showAllPinnedProperties = () => {
+    fetchProperties()
   }
 
   const handlePageChange = (newPage) => {
@@ -266,6 +375,98 @@ function Properties() {
       <div className="mb-6">
         <p className="text-gray-600">
           {loading ? 'Loading...' : `${pagination.total} properties found`}
+        </p>
+      </div>
+
+      {/* Map View */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Map Search</h2>
+            <p className="text-sm text-gray-500">
+              {isNearbyMode
+                ? `Showing properties within ${nearbyRadius} km of your location`
+                : 'View all host-pinned properties on the map'}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={nearbyRadius}
+              onChange={(e) => setNearbyRadius(Number(e.target.value))}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
+            >
+              <option value={2}>2 km</option>
+              <option value={5}>5 km</option>
+              <option value={10}>10 km</option>
+              <option value={20}>20 km</option>
+            </select>
+            <button
+              onClick={findNearbyProperties}
+              disabled={nearbyLoading}
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              <FiNavigation className="mr-2" />
+              {nearbyLoading ? 'Finding...' : 'Find Near Me'}
+            </button>
+            <button
+              onClick={showAllPinnedProperties}
+              className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              Show All
+            </button>
+          </div>
+        </div>
+
+        {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+          <div className="p-4 rounded-lg border border-yellow-200 bg-yellow-50 text-yellow-800 text-sm">
+            Google Maps API key is not configured.
+          </div>
+        ) : mapLoadError ? (
+          <div className="p-4 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm">
+            Failed to load Google Maps.
+          </div>
+        ) : !isMapLoaded ? (
+          <div className="h-64 flex items-center justify-center text-gray-500">Loading map...</div>
+        ) : (
+          <GoogleMapComponent
+            mapContainerStyle={mapContainerStyle}
+            center={mapCenter}
+            zoom={mapZoom}
+            options={{
+              streetViewControl: false,
+              mapTypeControl: true,
+              fullscreenControl: true,
+              zoomControl: true,
+              clickableIcons: false
+            }}
+          >
+            {mapProperties.map((property) => (
+              <Marker
+                key={property._id}
+                position={{
+                  lat: property.location.coordinates[1],
+                  lng: property.location.coordinates[0]
+                }}
+                title={property.title}
+                onClick={() => navigate(`/properties/${property._id}`)}
+              />
+            ))}
+
+            {userLocation && (
+              <Marker
+                position={userLocation}
+                title="Your current location"
+                label="You"
+              />
+            )}
+          </GoogleMapComponent>
+        )}
+
+        <p className="mt-3 text-xs text-gray-500">
+          {mapProperties.length > 0
+            ? `${mapProperties.length} pinned properties shown on the map`
+            : 'Location not available for current property results'}
         </p>
       </div>
 

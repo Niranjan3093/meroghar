@@ -222,6 +222,8 @@ function AddProperty() {
     }));
   }
 
+  const hasValidCoordinates = Number.isFinite(formData.latitude) && Number.isFinite(formData.longitude)
+
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
@@ -245,7 +247,7 @@ function AddProperty() {
     } else if (step === 2) {
       if (!formData.address.trim()) errs.address = 'Street address is required'
       if (!formData.city) errs.city = 'City is required'
-      if (!formData.latitude || !formData.longitude) errs.location = 'Please pin the property location on the map'
+      if (!hasValidCoordinates) errs.location = 'Please pin the property location on the map'
     } else if (step === 3) {
       if (formData.area && (isNaN(formData.area) || Number(formData.area) <= 0)) errs.area = 'Area must be a positive number'
       if (formData.area && Number(formData.area) > 100000) errs.area = 'Area seems too large'
@@ -346,7 +348,7 @@ function AddProperty() {
       }
 
       // Add location coordinates if available
-      if (formData.latitude && formData.longitude) {
+      if (hasValidCoordinates) {
         propertyData.location = {
           type: 'Point',
           coordinates: [formData.longitude, formData.latitude] // [longitude, latitude]
@@ -622,7 +624,7 @@ function AddProperty() {
                 <GoogleMap
                   onLocationSelect={handleLocationSelect}
                   initialLocation={
-                    formData.latitude && formData.longitude
+                    hasValidCoordinates
                       ? { lat: formData.latitude, lng: formData.longitude }
                       : null
                   }

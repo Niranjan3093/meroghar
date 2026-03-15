@@ -1,6 +1,33 @@
 import Property from '../models/Property.js';
 import { notifyPendingProperty } from '../utils/notifications.js';
 
+const isValidLatitude = (value) => Number.isFinite(value) && value >= -90 && value <= 90;
+const isValidLongitude = (value) => Number.isFinite(value) && value >= -180 && value <= 180;
+
+const parseLocationFromBody = (body) => {
+  if (body?.location?.coordinates && Array.isArray(body.location.coordinates)) {
+    const [longitude, latitude] = body.location.coordinates.map((value) => Number(value));
+    if (isValidLatitude(latitude) && isValidLongitude(longitude)) {
+      return {
+        type: 'Point',
+        coordinates: [longitude, latitude]
+      };
+    }
+    return null;
+  }
+
+  const latitude = Number(body?.latitude);
+  const longitude = Number(body?.longitude);
+  if (isValidLatitude(latitude) && isValidLongitude(longitude)) {
+    return {
+      type: 'Point',
+      coordinates: [longitude, latitude]
+    };
+  }
+
+  return null;
+};
+
 // @desc    Get all properties
 // @route   GET /api/properties
 // @access  Public
@@ -96,10 +123,12 @@ export const createProperty = async (req, res, next) => {
   try {
     req.body.host = req.user.id;
 
-    // Remove location if coordinates are not provided to avoid 2dsphere index issues
-    if (!req.body.location?.coordinates || req.body.location.coordinates.length !== 2) {
-      delete req.body.location;
+    const parsedLocation = parseLocationFromBody(req.body);
+    if (!parsedLocation) {
+      res.status(400);
+      throw new Error('Please mark the property location on the map');
     }
+    req.body.location = parsedLocation;
 
     const property = await Property.create(req.body);
 
@@ -166,6 +195,19 @@ export const updateProperty = async (req, res, next) => {
         req.body.rejectionEditCount = (property.rejectionEditCount || 0) + 1;
         req.body.rejectionReason = null;
       }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'location') ||
+        Object.prototype.hasOwnProperty.call(req.body, 'latitude') ||
+        Object.prototype.hasOwnProperty.call(req.body, 'longitude')) {
+      const parsedLocation = parseLocationFromBody(req.body);
+      if (!parsedLocation) {
+        res.status(400);
+        throw new Error('Property location is required and cannot be removed');
+      }
+      req.body.location = parsedLocation;
+      delete req.body.latitude;
+      delete req.body.longitude;
     }
 
     property = await Property.findByIdAndUpdate(req.params.id, req.body, {

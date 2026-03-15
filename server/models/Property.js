@@ -169,7 +169,8 @@ propertySchema.statics.getPropertiesInRadius = async function(coordinates, radiu
         $maxDistance: radius * 1000 // Convert km to meters
       }
     },
-    status: 'active'
+    status: 'active',
+    verificationStatus: 'verified'
   });
 };
 

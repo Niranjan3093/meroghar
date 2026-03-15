@@ -4,6 +4,7 @@ import { propertiesAPI, messagesAPI, usersAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
 import { toast } from 'react-toastify'
 import UserAvatar from '../../components/UserAvatar'
+import GoogleMap from '../../components/GoogleMap'
 import { 
   FiMapPin, FiHome, FiUser, FiPhone, FiMail, FiCalendar, 
   FiDollarSign, FiStar, FiHeart, FiShare2, FiChevronLeft, 
@@ -352,6 +353,31 @@ function PropertyDetails() {
                       {amenity.replace('-', ' ')}
                     </span>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {property.location?.coordinates?.length === 2 && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Property Location</h2>
+                <GoogleMap
+                  initialLocation={{
+                    lat: property.location.coordinates[1],
+                    lng: property.location.coordinates[0]
+                  }}
+                  readOnly={true}
+                />
+                <p className="mt-2 text-xs text-gray-500">
+                  Coordinates: {property.location.coordinates[1].toFixed(6)}, {property.location.coordinates[0].toFixed(6)}
+                </p>
+              </div>
+            )}
+
+            {(!property.location?.coordinates || property.location.coordinates.length !== 2) && (
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3">Property Location</h2>
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">Location not available for this property.</p>
                 </div>
               </div>
             )}

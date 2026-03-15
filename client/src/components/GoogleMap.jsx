@@ -14,8 +14,16 @@ const defaultCenter = {
   lng: 85.3240
 };
 
+const normalizeLocation = (value) => {
+  if (!value) return null;
+  const lat = Number(value.lat);
+  const lng = Number(value.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+};
+
 const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
-  const [selectedLocation, setSelectedLocation] = useState(initialLocation || null);
+  const [selectedLocation, setSelectedLocation] = useState(normalizeLocation(initialLocation));
   const [map, setMap] = useState(null);
 
   // Load Google Maps API
@@ -25,13 +33,16 @@ const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
 
   // Update selected location when initialLocation changes
   useEffect(() => {
-    if (initialLocation) {
-      setSelectedLocation(initialLocation);
+    const normalizedLocation = normalizeLocation(initialLocation);
+    if (normalizedLocation) {
+      setSelectedLocation(normalizedLocation);
       if (map) {
-        map.panTo(initialLocation);
+        map.panTo(normalizedLocation);
       }
+    } else if (readOnly) {
+      setSelectedLocation(null);
     }
-  }, [initialLocation, map]);
+  }, [initialLocation, map, readOnly]);
 
   const onLoad = useCallback((map) => {
     setMap(map);
@@ -60,6 +71,8 @@ const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
     setSelectedLocation(newLocation);
     handleLocationUpdate(lat, lng);
   }, [handleLocationUpdate, readOnly]);
+
+  const markerLocation = selectedLocation || normalizeLocation(initialLocation);
 
   const handleMarkerDragEnd = useCallback((event) => {
     if (readOnly) return; // Don't allow dragging in read-only mode
@@ -109,7 +122,7 @@ const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
     <div className="relative">
       <GoogleMapComponent
         mapContainerStyle={containerStyle}
-        center={selectedLocation || defaultCenter}
+        center={markerLocation || defaultCenter}
         zoom={15}
         onClick={readOnly ? undefined : handleMapClick}
         onLoad={onLoad}
@@ -123,9 +136,9 @@ const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
           disableDoubleClickZoom: false,
         }}
       >
-        {selectedLocation && (
+        {markerLocation && (
           <Marker
-            position={selectedLocation}
+            position={markerLocation}
             draggable={!readOnly}
             onDragEnd={readOnly ? undefined : handleMarkerDragEnd}
             animation={window.google?.maps?.Animation?.DROP}
@@ -153,13 +166,22 @@ const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
         </div>
       )}
       
-      {readOnly && selectedLocation && (
+      {readOnly && markerLocation && (
         <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
           <p className="text-sm text-gray-700 flex items-center gap-2">
             <span className="text-gray-600">📍</span>
             <span>
               This is the location pinned by the property owner.
             </span>
+          </p>
+        </div>
+      )}
+
+      {readOnly && !markerLocation && (
+        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-sm text-yellow-800 flex items-center gap-2">
+            <span className="text-yellow-700">⚠️</span>
+            <span>Location not available for this property.</span>
           </p>
         </div>
       )}

@@ -24,6 +24,7 @@ import UserManagement from './pages/dashboard/admin/UserManagement'
 import AdminProperties from './pages/dashboard/admin/AdminProperties'
 import AdminLeases from './pages/dashboard/admin/AdminLeases'
 import AdminSettings from './pages/dashboard/admin/AdminSettings'
+import AdminAnalytics from './pages/admin/AdminAnalytics'
 import MyProperties from './pages/dashboard/host/MyProperties'
 import AddProperty from './pages/dashboard/host/AddProperty'
 import Messages from './pages/dashboard/Messages'
@@ -193,6 +194,11 @@ function App() {
         <Route path="admin/settings" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminSettings />
+          </ProtectedRoute>
+        } />
+        <Route path="admin/reports" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminAnalytics />
           </ProtectedRoute>
         } />
 
