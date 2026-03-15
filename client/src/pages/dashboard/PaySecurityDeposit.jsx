@@ -68,13 +68,19 @@ function PaySecurityDeposit() {
       return
     }
     
-    // Check for eSewa callback
-    const oid = params.get('oid')
-    const amt = params.get('amt')
-    const refId = params.get('refId')
-    
-    if (location.pathname.includes('/esewa-success') && oid && amt && refId) {
-      handleEsewaSuccess({ oid, amt, refId })
+    // Check for eSewa callback (v2 sends base64 data in query)
+    const encodedEsewaData = params.get('data')
+
+    if (location.pathname.includes('/esewa-success') && encodedEsewaData) {
+      try {
+        const normalizedBase64 = decodeURIComponent(encodedEsewaData).replace(/-/g, '+').replace(/_/g, '/');
+        const decodedPayload = JSON.parse(atob(normalizedBase64));
+        handleEsewaSuccess(decodedPayload)
+      } catch (decodeError) {
+        console.error('Failed to decode eSewa callback payload:', decodeError)
+        toast.error('Invalid eSewa callback payload')
+        navigate(`/dashboard/pay-deposit/${id}`, { replace: true })
+      }
     } else if (location.pathname.includes('/esewa-failure')) {
       toast.error('eSewa payment failed or was cancelled')
       navigate(`/dashboard/pay-deposit/${id}`, { replace: true })
@@ -132,15 +138,24 @@ function PaySecurityDeposit() {
     try {
       setProcessing(true)
       setPaymentStep('processing')
+
+      if (!params?.transaction_uuid || !params?.total_amount) {
+        throw new Error('Missing required eSewa callback details')
+      }
       
       // Verify payment with backend
-      const verifyResponse = await paymentsAPI.verifyEsewa(params)
+      const verifyResponse = await paymentsAPI.verifyEsewa({
+        transaction_uuid: params.transaction_uuid,
+        total_amount: params.total_amount,
+        product_code: params.product_code,
+        transaction_code: params.transaction_code
+      })
       
       if (verifyResponse.data.success) {
         // Payment verified, create lease
         const response = await leaseRequestsAPI.payDeposit(id, {
           paymentMethod: 'esewa',
-          transactionId: params.refId,
+          transactionId: params.transaction_code || params.transaction_uuid,
           paymentGatewayResponse: verifyResponse.data.data
         })
 
@@ -267,42 +282,42 @@ function PaySecurityDeposit() {
         
       } else if (selectedPaymentMethod === 'esewa') {
         // Check if payment config is loaded
-        if (!paymentConfig?.esewa?.merchantId) {
-          toast.error('Payment configuration not loaded. Please try again.')
+        if (!paymentConfig?.esewa?.enabled) {
+          toast.error('eSewa payment gateway is not configured. Please contact support.')
           setProcessing(false)
           setPaymentStep('select')
           return
         }
 
-        // eSewa payment integration
-        const esewaPath = 'https://eSewa.com.np/epay/main';
-        const params = {
-          amt: leaseRequest.securityDeposit,
-          psc: 0,
-          pdc: 0,
-          txAmt: 0,
-          tAmt: leaseRequest.securityDeposit,
-          pid: `LEASE-${id}-${Date.now()}`,
-          scd: paymentConfig.esewa.merchantId, // Merchant code
-          su: `${window.location.origin}/dashboard/pay-deposit/${id}/esewa-success`,
-          fu: `${window.location.origin}/dashboard/pay-deposit/${id}/esewa-failure`
-        };
+        const initiateResponse = await paymentsAPI.initiateEsewa({
+          amount: leaseRequest.securityDeposit,
+          productIdentity: id,
+          successUrl: `${window.location.origin}/dashboard/pay-deposit/${id}/esewa-success`,
+          failureUrl: `${window.location.origin}/dashboard/pay-deposit/${id}/esewa-failure`
+        })
+
+        if (!initiateResponse.data.success || !initiateResponse.data.data?.url || !initiateResponse.data.data?.fields) {
+          throw new Error(initiateResponse.data.message || 'eSewa payment initiation failed')
+        }
+
+        const esewaPath = initiateResponse.data.data.url
+        const params = initiateResponse.data.data.fields
 
         // Create form and submit
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = esewaPath;
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = esewaPath
 
         Object.keys(params).forEach(key => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = params[key];
-          form.appendChild(input);
-        });
+          const input = document.createElement('input')
+          input.type = 'hidden'
+          input.name = key
+          input.value = String(params[key])
+          form.appendChild(input)
+        })
 
-        document.body.appendChild(form);
-        form.submit();
+        document.body.appendChild(form)
+        form.submit()
       }
     } catch (error) {
       console.error('Payment failed:', error);

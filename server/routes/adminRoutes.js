@@ -12,7 +12,8 @@ import {
   unbanUser,
   getAllProperties,
   getPropertyDetails,
-  getAllLeases
+  getAllLeases,
+  getAnalyticsReport
 } from '../controllers/adminController.js';
 
 // All routes are protected and admin-only
@@ -36,6 +37,9 @@ router.put('/users/:id/unban', unbanUser);
 
 // Lease management
 router.get('/leases', getAllLeases);
+
+// Analytics
+router.get('/analytics', getAnalyticsReport);
 
 export default router;
 

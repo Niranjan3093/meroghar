@@ -21,6 +21,7 @@ function Profile() {
   })
   const [profileErrors, setProfileErrors] = useState({})
   const [passwordErrors, setPasswordErrors] = useState({})
+  const [passwordSuccess, setPasswordSuccess] = useState('')
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -75,12 +76,21 @@ function Profile() {
     e.preventDefault()
     if (!validatePassword()) return
     setLoading(true)
-    // API call would go here
-    setTimeout(() => {
+    setPasswordSuccess('')
+    try {
+      await authAPI.updatePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      })
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      setPasswordSuccess('Password updated successfully')
+      setTimeout(() => setPasswordSuccess(''), 4000)
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to update password'
+      setPasswordErrors(prev => ({ ...prev, currentPassword: msg }))
+    } finally {
       setLoading(false)
-      alert('Password updated successfully')
-    }, 1000)
+    }
   }
 
   const handleAvatarUpload = async (e) => {
@@ -354,29 +364,21 @@ function Profile() {
                 )}
               </form>
 
-              {/* Account Stats */}
+              {/* Account Info */}
               <div className="mt-8 pt-6 border-t border-gray-100">
-                <h3 className="text-sm font-medium text-gray-700 mb-4">Account Statistics</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-primary-600">
-                      {user?.role === 'host' ? '5' : '1'}
+                <h3 className="text-sm font-medium text-gray-700 mb-4">Account Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500">Role</p>
+                    <p className="font-medium text-gray-900 capitalize mt-1">{user?.role || '-'}</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-gray-500">Account Status</p>
+                    <p className="font-medium mt-1">
+                      {user?.isVerified
+                        ? <span className="text-green-600">Verified</span>
+                        : <span className="text-orange-500">Unverified</span>}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {user?.role === 'host' ? 'Properties' : 'Leases'}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">12</p>
-                    <p className="text-xs text-gray-500 mt-1">Payments</p>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-blue-600">3</p>
-                    <p className="text-xs text-gray-500 mt-1">Messages</p>
-                  </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-lg">
-                    <p className="text-2xl font-bold text-orange-600">2</p>
-                    <p className="text-xs text-gray-500 mt-1">Reviews</p>
                   </div>
                 </div>
               </div>
@@ -389,6 +391,12 @@ function Profile() {
               <div className="bg-white rounded-xl border border-gray-100 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">Change Password</h2>
                 <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+                  {passwordSuccess && (
+                    <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                      <FiCheckCircle className="mr-2 flex-shrink-0" />
+                      {passwordSuccess}
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
                     <input
@@ -516,31 +524,9 @@ function Profile() {
                   <h2 className="text-lg font-semibold text-gray-900">Payment Methods</h2>
                   <button className="btn-primary text-sm">Add New</button>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-12 h-8 bg-purple-100 rounded flex items-center justify-center mr-4">
-                        <span className="text-purple-600 font-bold text-xs">Khalti</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Khalti Wallet</p>
-                        <p className="text-sm text-gray-500">9841****567</p>
-                      </div>
-                    </div>
-                    <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">Default</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center">
-                      <div className="w-12 h-8 bg-green-100 rounded flex items-center justify-center mr-4">
-                        <span className="text-green-600 font-bold text-xs">eSewa</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">eSewa Wallet</p>
-                        <p className="text-sm text-gray-500">9851****890</p>
-                      </div>
-                    </div>
-                    <button className="text-sm text-gray-500 hover:text-gray-700">Set Default</button>
-                  </div>
+                <div className="py-8 text-center text-gray-400">
+                  <FiCreditCard className="mx-auto text-3xl mb-2" />
+                  <p className="text-sm">No payment methods added yet.</p>
                 </div>
               </div>
 

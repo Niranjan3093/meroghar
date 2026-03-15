@@ -1,10 +1,15 @@
 import express from 'express';
+import crypto from 'crypto';
 const router = express.Router();
 import { protect } from '../middleware/authMiddleware.js';
 import Payment from '../models/Payment.js';
 import LeaseRequest from '../models/LeaseRequest.js';
 import { notifyRentPayment } from '../utils/notifications.js';
 import { generatePaymentReceipt } from '../utils/receiptGenerator.js';
+
+const ESEWA_BASE_URL = process.env.ESEWA_BASE_URL || 'https://epay.esewa.com.np';
+const ESEWA_FORM_URL = process.env.ESEWA_FORM_URL || `${ESEWA_BASE_URL}/api/epay/main/v2/form`;
+const ESEWA_STATUS_URL = process.env.ESEWA_STATUS_URL || `${ESEWA_BASE_URL}/api/epay/transaction/status/`;
 
 // Get payment gateway config
 router.get('/config', (req, res) => {
@@ -15,10 +20,74 @@ router.get('/config', (req, res) => {
         enabled: !!process.env.KHALTI_SECRET_KEY
       },
       esewa: {
-        merchantId: process.env.ESEWA_MERCHANT_ID || ''
+        merchantId: process.env.ESEWA_MERCHANT_ID || process.env.ESEWA_PRODUCT_CODE || '',
+        enabled: !!(process.env.ESEWA_SECRET_KEY && (process.env.ESEWA_MERCHANT_ID || process.env.ESEWA_PRODUCT_CODE))
       }
     }
   });
+});
+
+// Initiate eSewa payment (server-side signed payload)
+router.post('/esewa/initiate', protect, async (req, res) => {
+  try {
+    const { amount, productIdentity, successUrl, failureUrl } = req.body;
+
+    if (!amount || !productIdentity) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount and product identity are required'
+      });
+    }
+
+    const productCode = process.env.ESEWA_PRODUCT_CODE || process.env.ESEWA_MERCHANT_ID;
+    const secretKey = process.env.ESEWA_SECRET_KEY;
+
+    if (!productCode || !secretKey) {
+      return res.status(500).json({
+        success: false,
+        message: 'eSewa is not configured on server'
+      });
+    }
+
+    const totalAmount = Number(amount);
+    const transactionUuid = `LEASE-${productIdentity}-${Date.now()}`;
+    const finalSuccessUrl = successUrl || `${process.env.CLIENT_URL}/dashboard/pay-deposit/${productIdentity}/esewa-success`;
+    const finalFailureUrl = failureUrl || `${process.env.CLIENT_URL}/dashboard/pay-deposit/${productIdentity}/esewa-failure`;
+    const signedFieldNames = 'total_amount,transaction_uuid,product_code';
+    const messageToSign = `total_amount=${totalAmount},transaction_uuid=${transactionUuid},product_code=${productCode}`;
+    const signature = crypto
+      .createHmac('sha256', secretKey)
+      .update(messageToSign)
+      .digest('base64');
+
+    return res.json({
+      success: true,
+      message: 'eSewa payload generated successfully',
+      data: {
+        url: ESEWA_FORM_URL,
+        fields: {
+          amount: totalAmount,
+          tax_amount: 0,
+          total_amount: totalAmount,
+          transaction_uuid: transactionUuid,
+          product_code: productCode,
+          product_service_charge: 0,
+          product_delivery_charge: 0,
+          success_url: finalSuccessUrl,
+          failure_url: finalFailureUrl,
+          signed_field_names: signedFieldNames,
+          signature
+        }
+      }
+    });
+  } catch (error) {
+    console.error('eSewa initiation error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to initiate eSewa payment',
+      error: error.message
+    });
+  }
 });
 
 // Initiate Khalti payment (server-side)
@@ -223,42 +292,62 @@ router.post('/khalti/verify', protect, async (req, res) => {
 // Verify eSewa payment
 router.post('/esewa/verify', protect, async (req, res) => {
   try {
-    const { oid, amt, refId } = req.body;
+    const { transaction_uuid, total_amount, product_code, transaction_code } = req.body;
     
-    if (!oid || !amt || !refId) {
+    if (!transaction_uuid || !total_amount) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Order ID, amount, and reference ID are required' 
+        message: 'transaction_uuid and total_amount are required'
       });
     }
 
-    // Verify payment with eSewa API
-    const esewaVerifyUrl = `https://eSewa.com.np/epay/transrec`;
+    const configuredProductCode = process.env.ESEWA_PRODUCT_CODE || process.env.ESEWA_MERCHANT_ID;
+    if (!configuredProductCode || !process.env.ESEWA_SECRET_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: 'eSewa is not configured on server'
+      });
+    }
+
+    if (product_code && product_code !== configuredProductCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product code'
+      });
+    }
+
+    // Verify payment with eSewa status API
     const params = new URLSearchParams({
-      amt: amt,
-      rid: refId,
-      pid: oid,
-      scd: process.env.ESEWA_MERCHANT_ID
+      product_code: configuredProductCode,
+      total_amount: String(total_amount),
+      transaction_uuid: String(transaction_uuid)
     });
 
-    const esewaResponse = await fetch(`${esewaVerifyUrl}?${params}`, {
+    const esewaResponse = await fetch(`${ESEWA_STATUS_URL}?${params}`, {
       method: 'GET'
     });
 
-    const responseText = await esewaResponse.text();
+    const responseData = await esewaResponse.json();
 
-    // eSewa returns XML or "Success" text
-    if (responseText.includes('Success') || esewaResponse.ok) {
+    if (esewaResponse.ok && responseData.status === 'COMPLETE') {
+      if (transaction_code && responseData.transaction_code && responseData.transaction_code !== transaction_code) {
+        return res.status(400).json({
+          success: false,
+          message: 'Transaction code mismatch',
+          error: responseData
+        });
+      }
+
       return res.json({ 
         success: true, 
         message: 'Payment verified successfully',
-        data: { oid, amt, refId }
+        data: responseData
       });
     } else {
       return res.status(400).json({ 
         success: false, 
         message: 'Payment verification failed',
-        error: responseText
+        error: responseData
       });
     }
   } catch (error) {

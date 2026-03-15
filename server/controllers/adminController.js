@@ -1,6 +1,8 @@
 import Property from '../models/Property.js';
 import User from '../models/User.js';
 import Lease from '../models/Lease.js';
+import Payment from '../models/Payment.js';
+import Maintenance from '../models/Maintenance.js';
 import { notifyPropertyApproved, notifyPropertyRejected, sendAdminWarning } from '../utils/notifications.js';
 
 // @desc    Get admin dashboard statistics
@@ -449,6 +451,104 @@ export const getAllLeases = async (req, res, next) => {
         limit,
         total,
         pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get comprehensive analytics for admin reports
+// @route   GET /api/admin/analytics
+// @access  Private/Admin
+export const getAnalyticsReport = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    // Build the last-6-months labels
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        year: d.getFullYear(),
+        month: d.getMonth() + 1,
+        label: d.toLocaleString('default', { month: 'short', year: '2-digit' })
+      });
+    }
+
+    // Fill sparse aggregation results into a full 6-month array
+    const fillMonthly = (rows, valueKey = 'count') =>
+      months.map(m => ({
+        month: m.label,
+        value: rows.find(r => r._id.year === m.year && r._id.month === m.month)?.[valueKey] || 0
+      }));
+
+    const [
+      userGrowthRaw,
+      propertyGrowthRaw,
+      revenueGrowthRaw,
+      propertyTypeRaw,
+      leaseStatusRaw,
+      paymentMethodRaw,
+      maintenanceRaw,
+      userRoleRaw,
+      totalRevenue,
+      revenuePaymentCount
+    ] = await Promise.all([
+      User.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ]),
+      Property.aggregate([
+        { $match: { createdAt: { $gte: sixMonthsAgo } } },
+        { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ]),
+      Payment.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: sixMonthsAgo } } },
+        { $group: { _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } }, count: { $sum: 1 }, total: { $sum: '$amount' } } },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ]),
+      Property.aggregate([
+        { $group: { _id: '$propertyType', count: { $sum: 1 } } },
+        { $sort: { count: -1 } }
+      ]),
+      Lease.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      Payment.aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: '$paymentMethod', count: { $sum: 1 }, total: { $sum: '$amount' } } }
+      ]),
+      Maintenance.aggregate([
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      User.aggregate([
+        { $group: { _id: '$role', count: { $sum: 1 } } }
+      ]),
+      Payment.aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Payment.countDocuments({ status: 'completed' })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        userGrowth: fillMonthly(userGrowthRaw),
+        propertyGrowth: fillMonthly(propertyGrowthRaw),
+        revenueGrowth: fillMonthly(revenueGrowthRaw, 'total'),
+        revenuePaymentCount: fillMonthly(revenueGrowthRaw),
+        propertyTypeDistribution: propertyTypeRaw.map(d => ({ name: d._id || 'other', value: d.count })),
+        leaseStatusDistribution: leaseStatusRaw.map(d => ({ name: d._id, value: d.count })),
+        paymentMethodDistribution: paymentMethodRaw.map(d => ({ name: d._id, value: d.count, total: d.total })),
+        maintenanceDistribution: maintenanceRaw.map(d => ({ name: d._id, value: d.count })),
+        userRoleDistribution: userRoleRaw.map(d => ({ name: d._id, value: d.count })),
+        totalRevenue: totalRevenue[0]?.total || 0,
+        totalPayments: revenuePaymentCount
       }
     });
   } catch (error) {

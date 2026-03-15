@@ -93,6 +93,7 @@ export const paymentsAPI = {
   getById: (id) => api.get(`/payments/${id}`),
   create: (data) => api.post('/payments', data),
   initiateKhalti: (data) => api.post('/payments/khalti/initiate', data),
+  initiateEsewa: (data) => api.post('/payments/esewa/initiate', data),
   verifyKhalti: (data) => api.post('/payments/khalti/verify', data),
   verifyEsewa: (data) => api.post('/payments/esewa/verify', data),
   downloadReceipt: (id) => api.get(`/payments/${id}/receipt`, { responseType: 'blob' })
@@ -148,6 +149,7 @@ export const reviewsAPI = {
 // Admin API
 export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
+  getAnalytics: () => api.get('/admin/analytics'),
   getPendingProperties: () => api.get('/admin/properties/pending'),
   getAllProperties: (params) => api.get('/admin/properties', { params }),
   getPropertyDetails: (id) => api.get(`/admin/properties/${id}`),

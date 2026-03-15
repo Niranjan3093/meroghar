@@ -428,6 +428,17 @@ export const updatePassword = async (req, res, next) => {
 
     const user = await User.findById(req.user.id).select('+password');
 
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+
+    // OAuth users (Google/Facebook) have no local password
+    if (!user.password) {
+      res.status(400);
+      throw new Error('Password change is not available for social login accounts');
+    }
+
     if (!(await user.matchPassword(currentPassword))) {
       res.status(401);
       throw new Error('Current password is incorrect');
