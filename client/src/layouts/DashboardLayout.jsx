@@ -4,6 +4,15 @@ import DashboardNavbar from '../components/dashboard/DashboardNavbar'
 
 function DashboardLayout() {
   const location = useLocation()
+  const isLeaseDetailsPage = /^\/dashboard\/leases\/[^/]+$/.test(location.pathname)
+
+  if (isLeaseDetailsPage) {
+    return (
+      <div className="h-screen w-full overflow-y-auto bg-gray-50">
+        <Outlet />
+      </div>
+    )
+  }
   
   // Pages that need full-bleed (no padding) layout
   const fullBleedPages = ['/dashboard/leases']

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { propertiesAPI, usersAPI } from '../../utils/api'
 import { GoogleMap as GoogleMapComponent, Marker, useLoadScript } from '@react-google-maps/api'
-import { FiSearch, FiMapPin, FiHome, FiFilter, FiHeart, FiNavigation } from 'react-icons/fi'
+import { FiSearch, FiMapPin, FiHome, FiFilter, FiHeart, FiNavigation, FiList, FiMap } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 import { useAuthStore } from '../../store/authStore'
 
@@ -33,6 +33,7 @@ function Properties() {
   const [mapZoom, setMapZoom] = useState(11)
   const [userLocation, setUserLocation] = useState(null)
   const [isNearbyMode, setIsNearbyMode] = useState(false)
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'map'
   
   const [filters, setFilters] = useState({
     city: searchParams.get('city') || '',
@@ -371,219 +372,250 @@ function Properties() {
         )}
       </div>
 
-      {/* Results Count */}
-      <div className="mb-6">
+      {/* Results Count and View Toggle */}
+      <div className="mb-6 flex items-center justify-between">
         <p className="text-gray-600">
           {loading ? 'Loading...' : `${pagination.total} properties found`}
         </p>
-      </div>
-
-      {/* Map View */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Map Search</h2>
-            <p className="text-sm text-gray-500">
-              {isNearbyMode
-                ? `Showing properties within ${nearbyRadius} km of your location`
-                : 'View all host-pinned properties on the map'}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <select
-              value={nearbyRadius}
-              onChange={(e) => setNearbyRadius(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
-            >
-              <option value={2}>2 km</option>
-              <option value={5}>5 km</option>
-              <option value={10}>10 km</option>
-              <option value={20}>20 km</option>
-            </select>
-            <button
-              onClick={findNearbyProperties}
-              disabled={nearbyLoading}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              <FiNavigation className="mr-2" />
-              {nearbyLoading ? 'Finding...' : 'Find Near Me'}
-            </button>
-            <button
-              onClick={showAllPinnedProperties}
-              className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
-            >
-              Show All
-            </button>
-          </div>
-        </div>
-
-        {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
-          <div className="p-4 rounded-lg border border-yellow-200 bg-yellow-50 text-yellow-800 text-sm">
-            Google Maps API key is not configured.
-          </div>
-        ) : mapLoadError ? (
-          <div className="p-4 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm">
-            Failed to load Google Maps.
-          </div>
-        ) : !isMapLoaded ? (
-          <div className="h-64 flex items-center justify-center text-gray-500">Loading map...</div>
-        ) : (
-          <GoogleMapComponent
-            mapContainerStyle={mapContainerStyle}
-            center={mapCenter}
-            zoom={mapZoom}
-            options={{
-              streetViewControl: false,
-              mapTypeControl: true,
-              fullscreenControl: true,
-              zoomControl: true,
-              clickableIcons: false
-            }}
+        
+        <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${
+              viewMode === 'list'
+                ? 'bg-primary-600 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
           >
-            {mapProperties.map((property) => (
-              <Marker
-                key={property._id}
-                position={{
-                  lat: property.location.coordinates[1],
-                  lng: property.location.coordinates[0]
-                }}
-                title={property.title}
-                onClick={() => navigate(`/properties/${property._id}`)}
-              />
-            ))}
-
-            {userLocation && (
-              <Marker
-                position={userLocation}
-                title="Your current location"
-                label="You"
-              />
-            )}
-          </GoogleMapComponent>
-        )}
-
-        <p className="mt-3 text-xs text-gray-500">
-          {mapProperties.length > 0
-            ? `${mapProperties.length} pinned properties shown on the map`
-            : 'Location not available for current property results'}
-        </p>
-      </div>
-
-      {/* Properties Grid */}
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading properties...</p>
-          </div>
-        </div>
-      ) : properties.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
-          <FiHome className="mx-auto text-5xl text-gray-300 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Found</h3>
-          <p className="text-gray-500 mb-4">Try adjusting your filters or search criteria</p>
-          <button onClick={clearFilters} className="text-primary-600 hover:text-primary-700 font-medium">
-            Clear all filters
+            <FiList size={18} />
+            <span className="text-sm font-medium">List</span>
+          </button>
+          <button
+            onClick={() => setViewMode('map')}
+            className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${
+              viewMode === 'map'
+                ? 'bg-primary-600 text-white'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <FiMap size={18} />
+            <span className="text-sm font-medium">Map</span>
           </button>
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {properties.map((property) => (
-              <Link
-                key={property._id}
-                to={`/properties/${property._id}`}
-                className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition group"
+      </div>
+
+      {/* Map View - Only show when map view is selected */}
+      {viewMode === 'map' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Map Search</h2>
+              <p className="text-sm text-gray-500">
+                {isNearbyMode
+                  ? `Showing properties within ${nearbyRadius} km of your location`
+                  : 'View all host-pinned properties on the map'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={nearbyRadius}
+                onChange={(e) => setNearbyRadius(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
               >
-                <div className="relative h-48 overflow-hidden">
-                  {property.images && property.images.length > 0 ? (
-                    <img
-                      src={property.images[0].url}
-                      alt={property.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <FiHome className="w-12 h-12 text-gray-400" />
-                    </div>
-                  )}
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-primary-600 text-white text-xs px-2 py-1 rounded capitalize">
-                      {property.propertyType}
-                    </span>
-                  </div>
-                  {user && (
-                    <button
-                      onClick={(e) => toggleFavorite(e, property._id)}
-                      className={`absolute top-3 right-3 p-2 rounded-full transition-all ${
-                        favorites.has(property._id)
-                          ? 'bg-red-500 text-white'
-                          : 'bg-white/90 text-gray-600 hover:bg-white'
-                      }`}
-                      title={favorites.has(property._id) ? 'Remove from favorites' : 'Add to favorites'}
-                    >
-                      <FiHeart className={favorites.has(property._id) ? 'fill-current' : ''} size={16} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">{property.title}</h3>
-                  <p className="text-sm text-gray-500 flex items-center mb-3">
-                    <FiMapPin className="mr-1 flex-shrink-0" />
-                    <span className="line-clamp-1">{property.address?.street}, {property.address?.city}</span>
-                  </p>
-
-                  <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
-                    {property.bedrooms && <span>{property.bedrooms} Bed</span>}
-                    {property.bathrooms && <span>{property.bathrooms} Bath</span>}
-                    {property.area?.value && <span>{property.area.value} {property.area.unit}</span>}
-                  </div>
-
-                  <div className="pt-3 border-t border-gray-100">
-                    <p className="text-lg font-bold text-primary-600">
-                      NPR {property.rent?.toLocaleString()}
-                      <span className="text-sm font-normal text-gray-500">/mo</span>
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {pagination.pages > 1 && (
-            <div className="flex items-center justify-center mt-8 gap-2">
+                <option value={2}>2 km</option>
+                <option value={5}>5 km</option>
+                <option value={10}>10 km</option>
+                <option value={20}>20 km</option>
+              </select>
               <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={findNearbyProperties}
+                disabled={nearbyLoading}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Previous
+                <FiNavigation className="mr-2" />
+                {nearbyLoading ? 'Finding...' : 'Find Near Me'}
               </button>
-              
-              {[...Array(pagination.pages)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => handlePageChange(i + 1)}
-                  className={`w-10 h-10 rounded-lg ${
-                    pagination.page === i + 1
-                      ? 'bg-primary-600 text-white'
-                      : 'border border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              
               <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page === pagination.pages}
-                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={showAllPinnedProperties}
+                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
               >
-                Next
+                Show All
               </button>
             </div>
+          </div>
+
+          {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY ? (
+            <div className="p-4 rounded-lg border border-yellow-200 bg-yellow-50 text-yellow-800 text-sm">
+              Google Maps API key is not configured.
+            </div>
+          ) : mapLoadError ? (
+            <div className="p-4 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm">
+              Failed to load Google Maps.
+            </div>
+          ) : !isMapLoaded ? (
+            <div className="h-64 flex items-center justify-center text-gray-500">Loading map...</div>
+          ) : (
+            <GoogleMapComponent
+              mapContainerStyle={mapContainerStyle}
+              center={mapCenter}
+              zoom={mapZoom}
+              options={{
+                streetViewControl: false,
+                mapTypeControl: true,
+                fullscreenControl: true,
+                zoomControl: true,
+                clickableIcons: false
+              }}
+            >
+              {mapProperties.map((property) => (
+                <Marker
+                  key={property._id}
+                  position={{
+                    lat: property.location.coordinates[1],
+                    lng: property.location.coordinates[0]
+                  }}
+                  title={property.title}
+                  onClick={() => navigate(`/properties/${property._id}`)}
+                />
+              ))}
+
+              {userLocation && (
+                <Marker
+                  position={userLocation}
+                  title="Your current location"
+                  label="You"
+                />
+              )}
+            </GoogleMapComponent>
+          )}
+
+          <p className="mt-3 text-xs text-gray-500">
+            {mapProperties.length > 0
+              ? `${mapProperties.length} pinned properties shown on the map`
+              : 'Location not available for current property results'}
+          </p>
+        </div>
+      )}
+
+      {/* Properties Grid - Only show when list view is selected */}
+      {viewMode === 'list' && (
+        <>
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading properties...</p>
+              </div>
+            </div>
+          ) : properties.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-100 p-12 text-center">
+              <FiHome className="mx-auto text-5xl text-gray-300 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No Properties Found</h3>
+              <p className="text-gray-500 mb-4">Try adjusting your filters or search criteria</p>
+              <button onClick={clearFilters} className="text-primary-600 hover:text-primary-700 font-medium">
+                Clear all filters
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {properties.map((property) => (
+                  <Link
+                    key={property._id}
+                    to={`/properties/${property._id}`}
+                    className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition group"
+                  >
+                    <div className="relative h-48 overflow-hidden">
+                      {property.images && property.images.length > 0 ? (
+                        <img
+                          src={property.images[0].url}
+                          alt={property.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <FiHome className="w-12 h-12 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="absolute top-3 left-3">
+                        <span className="bg-primary-600 text-white text-xs px-2 py-1 rounded capitalize">
+                          {property.propertyType}
+                        </span>
+                      </div>
+                      {user && (
+                        <button
+                          onClick={(e) => toggleFavorite(e, property._id)}
+                          className={`absolute top-3 right-3 p-2 rounded-full transition-all ${
+                            favorites.has(property._id)
+                              ? 'bg-red-500 text-white'
+                              : 'bg-white/90 text-gray-600 hover:bg-white'
+                          }`}
+                          title={favorites.has(property._id) ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          <FiHeart className={favorites.has(property._id) ? 'fill-current' : ''} size={16} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="p-4">
+                      <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">{property.title}</h3>
+                      <p className="text-sm text-gray-500 flex items-center mb-3">
+                        <FiMapPin className="mr-1 flex-shrink-0" />
+                        <span className="line-clamp-1">{property.address?.street}, {property.address?.city}</span>
+                      </p>
+
+                      <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
+                        {property.bedrooms && <span>{property.bedrooms} Bed</span>}
+                        {property.bathrooms && <span>{property.bathrooms} Bath</span>}
+                        {property.area?.value && <span>{property.area.value} {property.area.unit}</span>}
+                      </div>
+
+                      <div className="pt-3 border-t border-gray-100">
+                        <p className="text-lg font-bold text-primary-600">
+                          NPR {property.rent?.toLocaleString()}
+                          <span className="text-sm font-normal text-gray-500">/mo</span>
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {pagination.pages > 1 && (
+                <div className="flex items-center justify-center mt-8 gap-2">
+                  <button
+                    onClick={() => handlePageChange(pagination.page - 1)}
+                    disabled={pagination.page === 1}
+                    className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  
+                  {[...Array(pagination.pages)].map((_, i) => (
+                    <button
+                      key={i + 1}
+                      onClick={() => handlePageChange(i + 1)}
+                      className={`w-10 h-10 rounded-lg ${
+                        pagination.page === i + 1
+                          ? 'bg-primary-600 text-white'
+                          : 'border border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  
+                  <button
+                    onClick={() => handlePageChange(pagination.page + 1)}
+                    disabled={pagination.page === pagination.pages}
+                    className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
