@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { FiMail, FiPhone, FiMapPin, FiHome, FiBriefcase, FiBook, FiHelpCircle, FiLock, FiFile, FiKey } from 'react-icons/fi'
+import { FiMail, FiPhone, FiMapPin, FiHome, FiBriefcase, FiBook, FiLock, FiFile, FiKey } from 'react-icons/fi'
 
 function Footer() {
   return (
@@ -26,8 +26,6 @@ function Footer() {
             <ul className="space-y-3">
               <li><Link to="/properties" className="text-primary-100 hover:text-accent-300 transition-colors duration-300 font-medium inline-flex items-center gap-2"><FiBriefcase className="flex-shrink-0" /> Browse Properties</Link></li>
               <li><Link to="/about" className="text-primary-100 hover:text-accent-300 transition-colors duration-300 font-medium inline-flex items-center gap-2"><FiBook className="flex-shrink-0" /> About Us</Link></li>
-              <li><Link to="/contact" className="text-primary-100 hover:text-accent-300 transition-colors duration-300 font-medium inline-flex items-center gap-2"><FiPhone className="flex-shrink-0" /> Contact</Link></li>
-              <li><Link to="/faq" className="text-primary-100 hover:text-accent-300 transition-colors duration-300 font-medium inline-flex items-center gap-2"><FiHelpCircle className="flex-shrink-0" /> FAQ</Link></li>
             </ul>
           </div>
 
@@ -52,7 +50,7 @@ function Footer() {
                 </div>
                 <div>
                   <p className="text-xs text-primary-200">Email</p>
-                  <span className="text-primary-100 font-semibold hover:text-accent-300 transition-colors cursor-pointer">info@meroghar.com</span>
+                  <span className="text-primary-100 font-semibold hover:text-accent-300 transition-colors cursor-pointer">deuza@meroghar.com</span>
                 </div>
               </li>
               <li className="flex items-start space-x-3 group">
@@ -61,7 +59,7 @@ function Footer() {
                 </div>
                 <div>
                   <p className="text-xs text-primary-200">Phone</p>
-                  <span className="text-primary-100 font-semibold hover:text-accent-300 transition-colors cursor-pointer">+977 1234567890</span>
+                  <span className="text-primary-100 font-semibold hover:text-accent-300 transition-colors cursor-pointer">+977 9702004193</span>
                 </div>
               </li>
               <li className="flex items-start space-x-3 group">
@@ -70,7 +68,7 @@ function Footer() {
                 </div>
                 <div>
                   <p className="text-xs text-primary-200">Location</p>
-                  <span className="text-primary-100 font-semibold">Kathmandu, Nepal</span>
+                  <span className="text-primary-100 font-semibold">Itahari, Nepal</span>
                 </div>
               </li>
             </ul>
@@ -82,9 +80,8 @@ function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-primary-200 text-sm font-medium">&copy; {new Date().getFullYear()} MeroGhar. All rights reserved.</p>
             <div className="flex space-x-6">
-              <a href="#" className="text-primary-300 hover:text-accent-300 transition-colors duration-300 text-sm font-medium">Terms</a>
-              <a href="#" className="text-primary-300 hover:text-accent-300 transition-colors duration-300 text-sm font-medium">Privacy</a>
-              <a href="#" className="text-primary-300 hover:text-accent-300 transition-colors duration-300 text-sm font-medium">Security</a>
+              <Link to="/terms" className="text-primary-300 hover:text-accent-300 transition-colors duration-300 text-sm font-medium">Terms</Link>
+              <Link to="/privacy" className="text-primary-300 hover:text-accent-300 transition-colors duration-300 text-sm font-medium">Privacy</Link>
             </div>
           </div>
         </div>

@@ -18,6 +18,8 @@ import OAuthCallback from './pages/auth/OAuthCallback'
 import SelectRole from './pages/auth/SelectRole'
 import Properties from './pages/properties/Properties'
 import PropertyDetails from './pages/properties/PropertyDetails'
+import TermsAndConditions from './pages/legal/TermsAndConditions'
+import PrivacyNotice from './pages/legal/PrivacyNotice'
 
 // Dashboard Pages
 import HostDashboard from './pages/dashboard/host/HostDashboard'
@@ -152,6 +154,8 @@ function App() {
           } />
           <Route path="properties" element={<Properties />} />
           <Route path="properties/:id" element={<PropertyDetails />} />
+          <Route path="terms" element={<TermsAndConditions />} />
+          <Route path="privacy" element={<PrivacyNotice />} />
         </Route>
 
         {/* Protected Dashboard Routes */}
