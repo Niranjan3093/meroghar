@@ -98,7 +98,7 @@ const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
 
   if (!isLoaded) {
     return (
-      <div style={containerStyle} className="bg-gray-50 flex items-center justify-center rounded-lg">
+      <div style={containerStyle} className="bg-primary-50 flex items-center justify-center rounded-lg">
         <div className="text-center p-6">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-3"></div>
           <p className="text-gray-600">Loading map...</p>
@@ -148,9 +148,9 @@ const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
       </GoogleMapComponent>
       
       {!readOnly && (
-        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800 flex items-center gap-2">
-            <span className="text-blue-600">📍</span>
+        <div className="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+          <p className="text-sm text-primary-800 flex items-center gap-2">
+            <span className="text-primary-600">📍</span>
             <span>
               <strong>Click on the map</strong> to pin your property location, or <strong>drag the marker</strong> to adjust the exact position.
             </span>
@@ -167,7 +167,7 @@ const GoogleMap = ({ onLocationSelect, initialLocation, readOnly = false }) => {
       )}
       
       {readOnly && markerLocation && (
-        <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="mt-3 p-3 bg-primary-50 border border-primary-200 rounded-lg">
           <p className="text-sm text-gray-700 flex items-center gap-2">
             <span className="text-gray-600">📍</span>
             <span>

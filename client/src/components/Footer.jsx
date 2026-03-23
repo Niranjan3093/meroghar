@@ -3,7 +3,7 @@ import { FiMail, FiPhone, FiMapPin } from 'react-icons/fi'
 
 function Footer() {
   return (
-    <footer className="bg-gray-800 text-white py-8">
+    <footer className="bg-primary-800 text-white py-8">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About */}
@@ -56,7 +56,7 @@ function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
+        <div className="border-t border-primary-700 mt-8 pt-6 text-center text-primary-100">
           <p>&copy; {new Date().getFullYear()} MeroGhar. All rights reserved.</p>
         </div>
       </div>

@@ -8,7 +8,7 @@ function DashboardLayout() {
 
   if (isLeaseDetailsPage) {
     return (
-      <div className="h-screen w-full overflow-y-auto bg-gray-50">
+      <div className="h-screen w-full overflow-y-auto bg-primary-50">
         <Outlet />
       </div>
     )
@@ -19,7 +19,7 @@ function DashboardLayout() {
   const isFullBleed = fullBleedPages.some(page => location.pathname.startsWith(page))
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-primary-50">
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <DashboardNavbar />

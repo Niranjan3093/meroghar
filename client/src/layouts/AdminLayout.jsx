@@ -31,21 +31,21 @@ function AdminLayout() {
   const isActive = (path) => location.pathname === path
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-primary-50 flex">
       {/* Sidebar */}
-      <aside className={`bg-gradient-to-b from-purple-800 to-indigo-900 text-white transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
+      <aside className={`bg-gradient-to-b from-primary-800 to-primary-700 text-white transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'}`}>
         <div className="h-full flex flex-col">
           {/* Header */}
-          <div className="p-6 flex items-center justify-between border-b border-purple-700">
+          <div className="p-6 flex items-center justify-between border-b border-primary-700">
             {sidebarOpen && (
               <div>
                 <h1 className="text-xl font-bold">Admin Portal</h1>
-                <p className="text-purple-300 text-xs mt-1">MeroGhar</p>
+                <p className="text-primary-100 text-xs mt-1">MeroGhar</p>
               </div>
             )}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-purple-700 rounded-lg transition"
+              className="p-2 hover:bg-primary-700 rounded-lg transition"
             >
               {sidebarOpen ? <FiX /> : <FiMenu />}
             </button>
@@ -53,12 +53,12 @@ function AdminLayout() {
 
           {/* User Info */}
           {sidebarOpen && (
-            <div className="p-4 border-b border-purple-700">
+            <div className="p-4 border-b border-primary-700">
               <div className="flex items-center space-x-3">
                 <UserAvatar name={user?.name} avatar={user?.avatar} size="md" />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{user?.name || 'Admin'}</p>
-                  <p className="text-purple-300 text-xs truncate">{user?.email}</p>
+                  <p className="text-primary-100 text-xs truncate">{user?.email}</p>
                 </div>
               </div>
             </div>
@@ -74,8 +74,8 @@ function AdminLayout() {
                   to={item.path}
                   className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition ${
                     isActive(item.path)
-                      ? 'bg-purple-700 text-white'
-                      : 'text-purple-200 hover:bg-purple-700/50 hover:text-white'
+                      ? 'bg-primary-700 text-white'
+                      : 'text-primary-100 hover:bg-primary-700/50 hover:text-white'
                   }`}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
@@ -86,10 +86,10 @@ function AdminLayout() {
           </nav>
 
           {/* Logout */}
-          <div className="p-4 border-t border-purple-700">
+          <div className="p-4 border-t border-primary-700">
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-purple-200 hover:bg-red-600 hover:text-white transition w-full"
+              className="flex items-center space-x-3 px-4 py-3 rounded-lg text-primary-100 hover:bg-red-600 hover:text-white transition w-full"
             >
               <FiLogOut className="w-5 h-5 flex-shrink-0" />
               {sidebarOpen && <span className="font-medium">Logout</span>}
@@ -125,7 +125,7 @@ function AdminLayout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <header className="bg-white border-b border-primary-100 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
@@ -134,7 +134,7 @@ function AdminLayout() {
               <p className="text-gray-500 text-sm mt-1">Manage your rental platform</p>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">
+              <div className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm font-medium">
                 Admin
               </div>
             </div>

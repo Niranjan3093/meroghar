@@ -89,7 +89,7 @@ function Navbar() {
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowLogoutModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium"
+                className="px-4 py-2 text-primary-800 bg-primary-100 rounded-lg hover:bg-primary-200 transition font-medium"
               >
                 No
               </button>
