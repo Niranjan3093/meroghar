@@ -43,6 +43,55 @@ const getDisplayStatus = (lease) => {
   return { status: lease.status, daysRemaining }
 }
 
+const leaseStatusPriority = {
+  active: 6,
+  renewed: 5,
+  pending: 4,
+  expired: 3,
+  terminated: 2,
+  archived: 1
+}
+
+const pickPreferredLease = (currentLease, candidateLease) => {
+  const currentPriority = leaseStatusPriority[currentLease?.status] || 0
+  const candidatePriority = leaseStatusPriority[candidateLease?.status] || 0
+
+  if (candidatePriority > currentPriority) {
+    return candidateLease
+  }
+
+  if (candidatePriority < currentPriority) {
+    return currentLease
+  }
+
+  const currentCreatedAt = new Date(currentLease?.createdAt || 0).getTime()
+  const candidateCreatedAt = new Date(candidateLease?.createdAt || 0).getTime()
+
+  return candidateCreatedAt >= currentCreatedAt ? candidateLease : currentLease
+}
+
+const dedupeLeasesByProperty = (leaseList) => {
+  const leaseMap = new Map()
+
+  leaseList.forEach((lease) => {
+    const propertyId = lease?.property?._id
+    if (!propertyId) {
+      leaseMap.set(lease._id, lease)
+      return
+    }
+
+    const existingLease = leaseMap.get(propertyId)
+    if (!existingLease) {
+      leaseMap.set(propertyId, lease)
+      return
+    }
+
+    leaseMap.set(propertyId, pickPreferredLease(existingLease, lease))
+  })
+
+  return Array.from(leaseMap.values())
+}
+
 const getStatusBadge = (status) => {
   if (status === 'active') {
     return <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700"><FiCheckCircle className="mr-1" />Active</span>
@@ -101,8 +150,9 @@ function Leases() {
       setLoading(true)
       const response = await leasesAPI.getAll()
       const rawLeases = response.data.data || []
+      const uniqueLeases = dedupeLeasesByProperty(rawLeases)
 
-      const withDerived = rawLeases.map((lease) => {
+      const withDerived = uniqueLeases.map((lease) => {
         const derived = getDisplayStatus(lease)
         return {
           ...lease,

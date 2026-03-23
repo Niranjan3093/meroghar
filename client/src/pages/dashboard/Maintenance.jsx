@@ -62,7 +62,12 @@ function Maintenance() {
           id: lease.property?._id || lease.property,
           name: lease.property?.title || 'Property'
         }))
-      setUserProperties(properties)
+
+      const uniqueProperties = Array.from(
+        new Map(properties.map((property) => [property.id, property])).values()
+      )
+
+      setUserProperties(uniqueProperties)
     } catch (error) {
       console.error('Failed to fetch user properties:', error)
     }
