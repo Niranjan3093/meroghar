@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { authAPI } from '../../utils/api'
 import UserAvatar from '../../components/UserAvatar'
+import { toast } from 'react-toastify'
 import { FiUser, FiCamera, FiBell, FiShield, FiCreditCard, FiCheckCircle, FiAlertCircle, FiEdit, FiSave, FiX } from 'react-icons/fi'
 
 function Profile() {
@@ -12,27 +13,13 @@ function Profile() {
   const [avatarUploading, setAvatarUploading] = useState(false)
   const fileInputRef = useRef(null)
 
-  // Fetch latest user data on component mount
-  useEffect(() => {
-    const fetchLatestUserData = async () => {
-      try {
-        const response = await authAPI.getMe()
-        if (response.data.data) {
-          updateUser(response.data.data)
-        }
-      } catch (error) {
-        console.error('Failed to fetch latest user data:', error)
-      }
-    }
-    fetchLatestUserData()
-  }, [])
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
     address: user?.address || '',
     bio: user?.bio || '',
-    avatar: user?.avatar || 'https://via.placeholder.com/150'
+    avatar: user?.avatar || ''
   })
   const [profileErrors, setProfileErrors] = useState({})
   const [passwordErrors, setPasswordErrors] = useState({})
@@ -49,6 +36,33 @@ function Profile() {
     leaseReminders: true,
     marketingEmails: false
   })
+
+  // Fetch latest user data on component mount
+  useEffect(() => {
+    const fetchLatestUserData = async () => {
+      try {
+        const response = await authAPI.getMe()
+        if (response.data.data) {
+          updateUser(response.data.data)
+        }
+      } catch (error) {
+        console.error('Failed to fetch latest user data:', error)
+      }
+    }
+    fetchLatestUserData()
+  }, [updateUser])
+
+  // Sync profileData when user changes
+  useEffect(() => {
+    setProfileData({
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      address: user?.address || '',
+      bio: user?.bio || '',
+      avatar: user?.avatar || ''
+    })
+  }, [user])
 
   const validateProfile = () => {
     const errs = {}
@@ -108,16 +122,16 @@ function Profile() {
   }
 
   const handleAvatarUpload = async (e) => {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (!file) return
 
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      alert('Please upload a JPG or PNG image')
+      toast.error('Please upload a JPG, PNG, or WebP image')
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image must be less than 5MB')
+      toast.error('Image must be less than 5MB')
       return
     }
 
@@ -126,11 +140,24 @@ function Profile() {
       const formData = new FormData()
       formData.append('avatar', file)
       const res = await authAPI.uploadAvatar(formData)
-      const newAvatar = res.data.data.avatar
-      updateUser({ avatar: newAvatar })
-      setProfileData(prev => ({ ...prev, avatar: newAvatar }))
+      const newAvatar = res.data.data?.avatar || res.data.avatar
+      
+      if (newAvatar) {
+        updateUser({ avatar: newAvatar })
+        setProfileData(prev => ({ ...prev, avatar: newAvatar }))
+        toast.success('Profile picture updated successfully!')
+        
+        // Clear the file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      } else {
+        throw new Error('No avatar URL returned from server')
+      }
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to upload avatar')
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to upload profile picture'
+      toast.error(errorMsg)
+      console.error('Avatar upload error:', err)
     } finally {
       setAvatarUploading(false)
     }

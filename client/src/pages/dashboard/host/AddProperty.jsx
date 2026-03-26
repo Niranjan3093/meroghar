@@ -69,6 +69,9 @@ function AddProperty() {
   const [editProperty, setEditProperty] = useState(null)
   const [citySearch, setCitySearch] = useState('')
   const [showCityDropdown, setShowCityDropdown] = useState(false)
+  const [showAllPropertyTypes, setShowAllPropertyTypes] = useState(false)
+  const [customTypeName, setCustomTypeName] = useState('')
+  const [customPropertyTypes, setCustomPropertyTypes] = useState([])
   const cityDropdownRef = useRef(null)
   const [formData, setFormData] = useState({
     // Basic Info
@@ -123,8 +126,73 @@ function AddProperty() {
     { value: 'room', label: 'Single Room' },
     { value: 'studio', label: 'Studio' },
     { value: 'office', label: 'Office' },
-    { value: 'villa', label: 'Villa' }
+    { value: 'villa', label: 'Villa' },
+    { value: 'land', label: 'Land' },
+    { value: 'shop', label: 'Shop' },
+    { value: 'hostel', label: 'Hostel' }
   ]
+
+  const basePropertyTypes = propertyTypes.slice(0, 4)
+  const extraPropertyTypes = propertyTypes.slice(4)
+  const visiblePropertyTypes = showAllPropertyTypes
+    ? [...propertyTypes, ...customPropertyTypes]
+    : [...basePropertyTypes, ...customPropertyTypes]
+
+  const getPropertyTypeLabel = (value) => {
+    const predefined = propertyTypes.find(type => type.value === value)
+    if (predefined) return predefined.label
+
+    const custom = customPropertyTypes.find(type => type.value === value)
+    if (custom) return custom.label
+
+    if (!value) return 'Property'
+
+    return value
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
+
+  const handlePropertyTypeSelect = (value) => {
+    setFormData(prev => ({ ...prev, type: value }))
+    if (formErrors.type) setFormErrors(prev => ({ ...prev, type: '' }))
+  }
+
+  const handleAddCustomPropertyType = () => {
+    const trimmedType = customTypeName.trim()
+    if (!trimmedType) {
+      toast.error('Enter a property type first')
+      return
+    }
+
+    const isDuplicate = [...propertyTypes, ...customPropertyTypes].some(
+      type => type.value.toLowerCase() === trimmedType.toLowerCase()
+    )
+
+    if (isDuplicate) {
+      toast.error('This property type already exists')
+      return
+    }
+
+    setCustomPropertyTypes(prev => [
+      ...prev,
+      { value: trimmedType, label: getPropertyTypeLabel(trimmedType) }
+    ])
+    setFormData(prev => ({ ...prev, type: trimmedType }))
+    setCustomTypeName('')
+    setShowAllPropertyTypes(true)
+  }
+
+  // Determine which fields are needed based on property type
+  const shouldShowBedroomBathroom = () => {
+    const type = formData.type
+    return !['office', 'shop', 'land'].includes(type)
+  }
+
+  const shouldShowArea = () => {
+    return true // Always show area
+  }
 
   // Close city dropdown on outside click
   useEffect(() => {
@@ -184,6 +252,10 @@ function AddProperty() {
           amenities: p.amenities || [],
           images: (p.images || []).map(img => ({ url: img.url, public_id: img.public_id, preview: img.url, isExisting: true }))
         })
+        if (p.propertyType && !propertyTypes.some(type => type.value === p.propertyType)) {
+          setCustomPropertyTypes([{ value: p.propertyType, label: getPropertyTypeLabel(p.propertyType) }])
+          setShowAllPropertyTypes(true)
+        }
         setCitySearch(p.address?.city ? p.address.city.charAt(0).toUpperCase() + p.address.city.slice(1) : '')
       } catch (error) {
         console.error('Failed to fetch property:', error)
@@ -249,6 +321,11 @@ function AddProperty() {
       if (!formData.city) errs.city = 'City is required'
       if (!hasValidCoordinates) errs.location = 'Please pin the property location on the map'
     } else if (step === 3) {
+      // Only validate bedrooms and bathrooms if they're needed
+      if (shouldShowBedroomBathroom()) {
+        if (formData.bedrooms < 0) errs.bedrooms = 'Bedrooms must be a valid number'
+        if (formData.bathrooms < 0) errs.bathrooms = 'Bathrooms must be a valid number'
+      }
       if (formData.area && (isNaN(formData.area) || Number(formData.area) <= 0)) errs.area = 'Area must be a positive number'
       if (formData.area && Number(formData.area) > 100000) errs.area = 'Area seems too large'
     } else if (step === 4) {
@@ -321,10 +398,11 @@ function AddProperty() {
     
     try {
       // Prepare the property data for the API
+      const selectedPropertyType = formData.type
       const propertyData = {
         title: formData.title,
         description: formData.description,
-        propertyType: formData.type,
+        propertyType: selectedPropertyType,
         address: {
           street: formData.address,
           city: formData.city,
@@ -338,8 +416,8 @@ function AddProperty() {
                        formData.minimumLease === 6 ? '6-months' : 
                        formData.minimumLease === 12 ? 'yearly' : 'yearly',
         availableFrom: new Date(),
-        bedrooms: parseInt(formData.bedrooms),
-        bathrooms: parseInt(formData.bathrooms),
+        bedrooms: shouldShowBedroomBathroom() ? parseInt(formData.bedrooms) : null,
+        bathrooms: shouldShowBedroomBathroom() ? parseInt(formData.bathrooms) : null,
         area: formData.area ? {
           value: parseInt(formData.area),
           unit: 'sqft'
@@ -495,21 +573,69 @@ function AddProperty() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Property Type *</label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {propertyTypes.map((type) => (
+                  {visiblePropertyTypes.map((type) => (
                     <button
                       key={type.value}
                       type="button"
-                      onClick={() => setFormData({ ...formData, type: type.value })}
-                      className={`p-4 border rounded-lg text-center transition ${
+                      onClick={() => handlePropertyTypeSelect(type.value)}
+                      className={`p-4 border rounded-lg text-center transition min-h-[92px] flex flex-col items-center justify-center ${
                         formData.type === type.value
-                          ? 'border-primary-600 bg-primary-50 text-primary-600'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-primary-600 bg-primary-50 text-primary-600 shadow-sm'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
                       <FiHome className="mx-auto text-2xl mb-1" />
                       <span className="text-sm font-medium">{type.label}</span>
                     </button>
                   ))}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 mt-3">
+                  {!showAllPropertyTypes && extraPropertyTypes.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllPropertyTypes(true)}
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700"
+                    >
+                      <FiPlus className="text-base" />
+                      Show more types
+                    </button>
+                  )}
+
+                  {showAllPropertyTypes && extraPropertyTypes.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllPropertyTypes(false)}
+                      className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+                    >
+                      <FiChevronLeft className="text-base" />
+                      Show less
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-5 rounded-xl border border-dashed border-primary-200 bg-primary-50/50 p-4">
+                  <div className="flex flex-col md:flex-row gap-3 md:items-end">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Add custom property type</label>
+                      <input
+                        type="text"
+                        value={customTypeName}
+                        onChange={(e) => setCustomTypeName(e.target.value)}
+                        placeholder="e.g., Garage, Warehouse"
+                        className="input-field"
+                        maxLength={50}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddCustomPropertyType}
+                      className="px-5 py-3 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 transition inline-flex items-center justify-center gap-2 md:w-auto w-full"
+                    >
+                      <FiPlus />
+                      Add Type
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -641,33 +767,64 @@ function AddProperty() {
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Property Details</h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Bedrooms *</label>
-                  <select
-                    name="bedrooms"
-                    value={formData.bedrooms}
-                    onChange={handleChange}
-                    className="input-field"
-                  >
-                    {[1, 2, 3, 4, 5, 6].map((num) => (
-                      <option key={num} value={num}>{num}</option>
-                    ))}
-                  </select>
+              {/* Property Type Summary */}
+              <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+                <p className="text-sm text-primary-800">
+                  <span className="font-medium">Property Type:</span> {getPropertyTypeLabel(formData.type)}
+                </p>
+              </div>
+
+              {/* Conditionally show bedrooms and bathrooms */}
+              {shouldShowBedroomBathroom() && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Bedrooms</label>
+                    <select
+                      name="bedrooms"
+                      value={formData.bedrooms}
+                      onChange={handleChange}
+                      className="input-field"
+                    >
+                      <option value={0}>0</option>
+                      {[1, 2, 3, 4, 5, 6].map((num) => (
+                        <option key={num} value={num}>{num}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Bathrooms</label>
+                    <select
+                      name="bathrooms"
+                      value={formData.bathrooms}
+                      onChange={handleChange}
+                      className="input-field"
+                    >
+                      <option value={0}>0</option>
+                      {[1, 2, 3, 4].map((num) => (
+                        <option key={num} value={num}>{num}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Area (sq.ft)</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      name="area"
+                      value={formData.area}
+                      onChange={handleChange}
+                      className={`input-field ${formErrors.area ? 'border-red-500' : ''}`}
+                      placeholder="e.g., 1200"
+                      maxLength={6}
+                      onKeyDown={handleNumericKeyDown}
+                    />
+                    {formErrors.area && <p className="text-red-500 text-sm mt-1">{formErrors.area}</p>}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Bathrooms *</label>
-                  <select
-                    name="bathrooms"
-                    value={formData.bathrooms}
-                    onChange={handleChange}
-                    className="input-field"
-                  >
-                    {[1, 2, 3, 4].map((num) => (
-                      <option key={num} value={num}>{num}</option>
-                    ))}
-                  </select>
-                </div>
+              )}
+
+              {/* Area field for properties that don't show bedrooms/bathrooms */}
+              {!shouldShowBedroomBathroom() && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Area (sq.ft)</label>
                   <input
@@ -683,7 +840,7 @@ function AddProperty() {
                   />
                   {formErrors.area && <p className="text-red-500 text-sm mt-1">{formErrors.area}</p>}
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Furnishing Status</label>

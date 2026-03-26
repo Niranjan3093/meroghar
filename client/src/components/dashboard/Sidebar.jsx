@@ -102,10 +102,10 @@ function Sidebar({ isOpen, onClose, onLogoutClick }) {
           <Link
             to="/dashboard/host/properties/add"
             onClick={onClose}
-            className="flex items-center justify-center w-full px-4 py-3 mb-6 mx-4 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-xl hover:shadow-lg transition-all transform hover:scale-105 font-bold shadow-md"
+            className="flex items-center justify-center gap-2 px-4 py-3 mb-6 mx-4 bg-gradient-to-r from-primary-600 to-accent-500 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
           >
-            <FiPlus className="mr-2 text-lg" />
-            Add Property
+            <FiPlus className="text-lg" />
+            <span>Add Property</span>
           </Link>
         )}
 
