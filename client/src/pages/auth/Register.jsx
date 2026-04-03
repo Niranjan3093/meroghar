@@ -269,7 +269,7 @@ function Register() {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`}
+                onClick={() => window.location.href = '/api/auth/google'}
                 className="btn-secondary flex items-center justify-center gap-2"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -282,7 +282,7 @@ function Register() {
               </button>
               <button
                 type="button"
-                onClick={() => window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/facebook`}
+                onClick={() => window.location.href = '/api/auth/facebook'}
                 className="btn-secondary flex items-center justify-center gap-2"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">

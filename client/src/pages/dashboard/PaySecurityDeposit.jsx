@@ -43,7 +43,7 @@ function PaySecurityDeposit() {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     
-    console.log('🔍 Checking for payment callback...');
+    console.log('Checking for payment callback...');
     console.log('   Current URL:', location.pathname + location.search);
     console.log('   URL Params:', Object.fromEntries(params.entries()));
     
@@ -58,7 +58,7 @@ function PaySecurityDeposit() {
     console.log('   Khalti params:', { pidx, status, txnId, amount, purchaseOrderId });
     
     if (pidx && status) {
-      console.log(`✅ Khalti callback detected! Status: ${status}`);
+      console.log('Khalti callback detected! Status:', status);
       if (status === 'Completed') {
         handleKhaltiSuccess({ pidx, txnId, amount })
       } else {
@@ -100,18 +100,18 @@ function PaySecurityDeposit() {
         amount: params.amount
       })
       
-      console.log('✅ Verification response:', verifyResponse.data);
+      console.log('Verification response:', verifyResponse.data);
       
       if (verifyResponse.data.success) {
         // Payment verified, create lease
-        console.log('📝 Creating lease and processing payment...');
+        console.log('Creating lease and processing payment...');
         const response = await leaseRequestsAPI.payDeposit(id, {
           paymentMethod: 'khalti',
           transactionId: params.txnId || params.pidx,
           paymentGatewayResponse: verifyResponse.data.data
         })
 
-        console.log('✅ Payment processing complete!', response.data);
+        console.log('Payment processing complete!', response.data);
         console.log('   Lease Request Status:', response.data.data?.status);
         console.log('   Security Deposit Paid:', response.data.data?.securityDepositPaid);
 
@@ -120,7 +120,7 @@ function PaySecurityDeposit() {
         toast.success('Payment successful! Your lease has been created. You can now sign the contract.')
         
         setTimeout(() => {
-          console.log('🔄 Redirecting to lease requests page...');
+          console.log('Redirecting to lease requests page...');
           navigate('/dashboard/lease-requests', { replace: true })
         }, 3000)
       } else {

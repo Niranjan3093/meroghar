@@ -177,7 +177,7 @@ function PropertyVerification() {
                     <span>
                       Host: {property.host?.name || 'Unknown'}
                       {property.host?.rating > 0 && (
-                        <span className="ml-2">⭐ {property.host.rating.toFixed(1)}</span>
+                        <span className="ml-2 flex items-center gap-1"><FiStar className="w-4 h-4 text-yellow-500 fill-yellow-500" /> {property.host.rating.toFixed(1)}</span>
                       )}
                     </span>
                   </div>

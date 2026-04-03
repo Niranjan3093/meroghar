@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { FiBell, FiCheck, FiTrash2, FiFilter, FiChevronDown } from 'react-icons/fi'
+import { FiBell, FiCheck, FiTrash2, FiFilter, FiChevronDown, FiMessageCircle, FiClipboard, FiCheckCircle, FiXCircle, FiDollarSign, FiClock, FiTool, FiAlertTriangle, FiUser, FiStar, FiFileText } from 'react-icons/fi'
 import { notificationsAPI } from '../../utils/api'
 import { useAuthStore } from '../../store/authStore'
 
@@ -93,28 +93,29 @@ function Notifications() {
   }
 
   const getNotificationIcon = (type) => {
+    const iconProps = 'w-5 h-5'
     const icons = {
-      message: '💬',
-      lease_request: '📋',
-      lease_request_approved: '✅',
-      lease_request_rejected: '❌',
-      rent_payment: '💰',
-      payment_received: '💰',
-      rent_reminder: '⏰',
-      maintenance_request: '🔧',
-      maintenance_resolved: '✔️',
-      maintenance_update: '📝',
-      lease_expiring: '⚠️',
-      contract_renewal: '🔄',
-      property_approved: '🏠',
-      property_rejected: '🚫',
-      warning: '⚠️',
-      new_user: '👤',
-      pending_property: '🏗️',
-      review_received: '⭐',
-      lease_signed: '✍️'
+      message: <FiMessageCircle className={iconProps} />,
+      lease_request: <FiClipboard className={iconProps} />,
+      lease_request_approved: <FiCheckCircle className={iconProps} />,
+      lease_request_rejected: <FiXCircle className={iconProps} />,
+      rent_payment: <FiDollarSign className={iconProps} />,
+      payment_received: <FiDollarSign className={iconProps} />,
+      rent_reminder: <FiClock className={iconProps} />,
+      maintenance_request: <FiTool className={iconProps} />,
+      maintenance_resolved: <FiCheck className={iconProps} />,
+      maintenance_update: <FiFileText className={iconProps} />,
+      lease_expiring: <FiAlertTriangle className={iconProps} />,
+      contract_renewal: <FiFileText className={iconProps} />,
+      property_approved: <FiBell className={iconProps} />,
+      property_rejected: <FiXCircle className={iconProps} />,
+      warning: <FiAlertTriangle className={iconProps} />,
+      new_user: <FiUser className={iconProps} />,
+      pending_property: <FiBell className={iconProps} />,
+      review_received: <FiStar className={iconProps} />,
+      lease_signed: <FiFileText className={iconProps} />
     }
-    return icons[type] || '🔔'
+    return icons[type] || <FiBell className={iconProps} />
   }
 
   const filterOptions = [
@@ -220,9 +221,9 @@ function Notifications() {
                 className={`p-4 hover:bg-gray-50 transition ${!notification.read ? 'bg-primary-50/30' : ''}`}
               >
                 <div className="flex items-start gap-4">
-                  <span className="text-2xl flex-shrink-0">
+                  <div className="text-primary-600 flex-shrink-0 flex items-center justify-center w-6 h-6">
                     {getNotificationIcon(notification.type)}
-                  </span>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4">
                       <div>

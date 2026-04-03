@@ -39,7 +39,7 @@ function LeaseRequests() {
       setLoading(true)
       const response = await leaseRequestsAPI.getAll()
       const requests = response.data.data || []
-      console.log('📋 Lease Requests Fetched:', requests.map(r => ({ 
+      console.log('Lease Requests Fetched:', requests.map(r => ({ 
         id: r._id, 
         status: r.status, 
         depositPaid: r.securityDepositPaid 

@@ -274,7 +274,7 @@ function AdminProperties() {
                       <span>
                         Host: {property.host?.name || 'Unknown'}
                         {property.host?.rating > 0 && (
-                          <span className="ml-2">⭐ {property.host.rating.toFixed(1)}</span>
+                          <span className="ml-2 flex items-center gap-1"><FiStar className="w-4 h-4 text-yellow-500 fill-yellow-500" /> {property.host.rating.toFixed(1)}</span>
                         )}
                       </span>
                     </div>
@@ -546,7 +546,7 @@ function AdminProperties() {
                     <p className="text-sm text-gray-600">Phone: {propertyDetails.property.host.phone}</p>
                   )}
                   {propertyDetails.property.host?.rating > 0 && (
-                    <p className="text-sm text-gray-600 mt-1">Rating: ⭐ {propertyDetails.property.host.rating.toFixed(1)}</p>
+                    <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">Rating: <FiStar className="w-4 h-4 text-yellow-500 fill-yellow-500" /> {propertyDetails.property.host.rating.toFixed(1)}</p>
                   )}
                 </div>
               </div>

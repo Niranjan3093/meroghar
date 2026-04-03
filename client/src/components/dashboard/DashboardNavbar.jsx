@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import { FiBell, FiSearch, FiHome, FiMenu, FiX, FiSettings, FiHelpCircle, FiCheck, FiTrash2 } from 'react-icons/fi'
+import { FiBell, FiSearch, FiHome, FiMenu, FiX, FiSettings, FiHelpCircle, FiCheck, FiTrash2, FiMessageCircle, FiClipboard, FiCheckCircle, FiXCircle, FiDollarSign, FiClock, FiTool, FiAlertTriangle, FiUser, FiStar, FiFileText } from 'react-icons/fi'
 import { useState, useEffect, useCallback } from 'react'
 import { notificationsAPI } from '../../utils/api'
 import { io } from 'socket.io-client'
@@ -157,46 +157,47 @@ function DashboardNavbar() {
 
   // Get notification icon based on type
   const getNotificationIcon = (type) => {
+    const iconProps = 'w-5 h-5 text-primary-600'
     switch (type) {
       case 'message':
-        return '💬'
+        return <FiMessageCircle className={iconProps} />
       case 'lease_request':
-        return '📋'
+        return <FiClipboard className={iconProps} />
       case 'lease_request_approved':
-        return '✅'
+        return <FiCheckCircle className={iconProps} />
       case 'lease_request_rejected':
-        return '❌'
+        return <FiXCircle className={iconProps} />
       case 'rent_payment':
       case 'payment_received':
-        return '💰'
+        return <FiDollarSign className={iconProps} />
       case 'rent_reminder':
-        return '⏰'
+        return <FiClock className={iconProps} />
       case 'maintenance_request':
-        return '🔧'
+        return <FiTool className={iconProps} />
       case 'maintenance_resolved':
-        return '✔️'
+        return <FiCheck className={iconProps} />
       case 'maintenance_update':
-        return '📝'
+        return <FiFileText className={iconProps} />
       case 'lease_expiring':
-        return '⚠️'
+        return <FiAlertTriangle className={iconProps} />
       case 'contract_renewal':
-        return '🔄'
+        return <FiFileText className={iconProps} />
       case 'property_approved':
-        return '🏠'
+        return <FiHome className={iconProps} />
       case 'property_rejected':
-        return '🚫'
+        return <FiXCircle className={iconProps} />
       case 'warning':
-        return '⚠️'
+        return <FiAlertTriangle className={iconProps} />
       case 'new_user':
-        return '👤'
+        return <FiUser className={iconProps} />
       case 'pending_property':
-        return '🏗️'
+        return <FiHome className={iconProps} />
       case 'review_received':
-        return '⭐'
+        return <FiStar className={iconProps} />
       case 'lease_signed':
-        return '✍️'
+        return <FiFileText className={iconProps} />
       default:
-        return '🔔'
+        return <FiBell className={iconProps} />
     }
   }
 
@@ -298,9 +299,9 @@ function DashboardNavbar() {
                           className={`p-4 border-b border-gray-50 hover:bg-gray-50 transition cursor-pointer ${!notif.read ? 'bg-primary-50/50' : ''}`}
                         >
                           <div className="flex items-start gap-3">
-                            <span className="text-xl flex-shrink-0">
+                            <div className="text-primary-600 flex-shrink-0 flex items-center justify-center">
                               {getNotificationIcon(notif.type)}
-                            </span>
+                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <p className={`text-sm ${!notif.read ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>

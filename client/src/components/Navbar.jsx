@@ -18,43 +18,48 @@ function Navbar() {
   }
 
   return (
-    <nav className="bg-white shadow-md">
+    <nav className="sticky top-0 z-40 bg-white shadow-lg border-b-4 border-gradient-to-r from-primary-600 to-accent-500">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <FiHome className="text-2xl text-primary-600" />
-            <span className="text-xl font-bold text-gray-800">MeroGhar</span>
+          <Link to="/" className="flex items-center space-x-2 group hover-glow">
+            <div className="bg-gradient-to-br from-primary-600 to-primary-700 p-2 rounded-lg">
+              <FiHome className="text-2xl text-white" />
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-primary-700 to-accent-600 bg-clip-text text-transparent">MeroGhar</span>
           </Link>
 
           {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-6">
-            <Link to="/properties" className="text-gray-700 hover:text-primary-600 transition">
+          <div className="hidden md:flex items-center space-x-8">
+            <Link to="/properties" className="text-slate-700 font-medium hover:text-primary-600 transition-colors duration-300 relative group">
               Browse Properties
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-600 to-accent-500 group-hover:w-full transition-all duration-300"></span>
             </Link>
             
             {isAuthenticated ? (
               <>
                 <Link 
                   to={`/dashboard/${user?.role}`} 
-                  className="text-gray-700 hover:text-primary-600 transition"
+                  className="text-slate-700 font-medium hover:text-primary-600 transition-colors duration-300 relative group"
                 >
                   Dashboard
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-600 to-accent-500 group-hover:w-full transition-all duration-300"></span>
                 </Link>
                 <Link 
                   to="/dashboard/messages" 
-                  className="text-gray-700 hover:text-primary-600 transition"
+                  className="text-slate-700 font-medium hover:text-primary-600 transition-colors duration-300 relative group"
                 >
                   Messages
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-primary-600 to-accent-500 group-hover:w-full transition-all duration-300"></span>
                 </Link>
-                <div className="flex items-center space-x-3">
-                  <Link to="/dashboard/profile" className="flex items-center space-x-2">
+                <div className="flex items-center space-x-4 pl-4 border-l-2 border-slate-200">
+                  <Link to="/dashboard/profile" className="flex items-center space-x-2 hover:opacity-75 transition-opacity">
                     <UserAvatar name={user?.name} avatar={user?.avatar} size="sm" />
-                    <span className="text-gray-700">{user?.name}</span>
+                    <span className="text-slate-700 font-medium hidden lg:inline">{user?.name}</span>
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="text-red-600 hover:text-red-700 transition"
+                    className="text-accent-600 hover:text-accent-700 transition-colors duration-300 hover:bg-accent-50 p-2 rounded-lg"
                     title="Logout"
                   >
                     <FiLogOut className="text-xl" />
@@ -63,10 +68,10 @@ function Navbar() {
               </>
             ) : (
               <>
-                <Link to="/login" className="text-gray-700 hover:text-primary-600 transition">
+                <Link to="/login" className="text-slate-700 font-medium hover:text-primary-600 transition-colors duration-300">
                   Login
                 </Link>
-                <Link to="/register" className="btn-primary">
+                <Link to="/register" className="btn-primary text-sm">
                   Sign Up
                 </Link>
               </>
@@ -75,29 +80,29 @@ function Navbar() {
 
           {/* Mobile Menu Button */}
           <button className="md:hidden">
-            <FiMenu className="text-2xl" />
+            <FiMenu className="text-2xl text-slate-700" />
           </button>
         </div>
       </div>
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 animate-fade-in">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Logout</h3>
+            <p className="text-slate-600 mb-6">Are you sure you want to logout?</p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowLogoutModal(false)}
-                className="px-4 py-2 text-primary-800 bg-primary-100 rounded-lg hover:bg-primary-200 transition font-medium"
+                className="btn-secondary text-sm"
               >
-                No
+                Cancel
               </button>
               <button
                 onClick={confirmLogout}
-                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition font-medium"
+                className="btn-accent text-sm"
               >
-                Yes
+                Logout
               </button>
             </div>
           </div>

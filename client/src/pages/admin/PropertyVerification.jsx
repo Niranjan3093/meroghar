@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { adminAPI } from '../../../utils/api'
 import PropertyStatusBadge from '../../../components/PropertyStatusBadge'
 import GoogleMap from '../../../components/GoogleMap'
-import { FiCheck, FiX, FiMapPin, FiDollarSign, FiHome, FiUser, FiMap } from 'react-icons/fi'
+import { FiCheck, FiX, FiMapPin, FiDollarSign, FiHome, FiUser, FiMap, FiStar } from 'react-icons/fi'
 import { toast } from 'react-toastify'
 
 function PropertyVerification() {
@@ -189,7 +189,7 @@ function PropertyVerification() {
                     <span>
                       Host: {property.host?.name || 'Unknown'}
                       {property.host?.rating > 0 && (
-                        <span className="ml-2">⭐ {property.host.rating.toFixed(1)}</span>
+                        <span className="ml-2 flex items-center gap-1"><FiStar className="w-4 h-4 text-yellow-500 fill-yellow-500" /> {property.host.rating.toFixed(1)}</span>
                       )}
                     </span>
                   </div>

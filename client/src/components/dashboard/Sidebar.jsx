@@ -62,49 +62,49 @@ function Sidebar() {
   }
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-white h-screen shadow-sm border-r border-gray-100 overflow-y-auto flex flex-col">
+    <aside className="w-64 flex-shrink-0 bg-white h-screen shadow-lg border-r-4 border-gradient-to-b from-primary-600 to-accent-500 overflow-y-auto flex flex-col">
       <div className="flex-1 p-4 overflow-y-auto">
-        {/* User Info */}
-        <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-xl">
-          <div className="flex items-center space-x-3">
-            <UserAvatar name={user?.name} avatar={user?.avatar} size="lg" className="border-2 border-white shadow-sm" />
+        {/* User Info - Premium Card */}
+        <div className="mb-6 p-5 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-2xl shadow-lg">
+          <div className="flex items-center space-x-4">
+            <UserAvatar name={user?.name} avatar={user?.avatar} size="lg" className="border-4 border-white shadow-lg" />
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 truncate">{user?.name || 'User'}</h3>
-              <p className="text-xs text-primary-600 capitalize font-medium">{user?.role} Account</p>
+              <h3 className="font-bold text-white truncate text-lg">{user?.name || 'User'}</h3>
+              <p className="text-xs text-primary-100 capitalize font-semibold mt-1 bg-primary-500/50 inline-block px-2 py-1 rounded-full">{user?.role} Account</p>
             </div>
           </div>
         </div>
 
-        {/* Quick Action */}
+        {/* Quick Action Button */}
         {user?.role === 'host' && (
           <Link
             to="/dashboard/host/properties/add"
-            className="flex items-center justify-center w-full px-4 py-3 mb-6 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium"
+            className="flex items-center justify-center w-full px-4 py-3 mb-6 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-xl hover:shadow-lg transition-all transform hover:scale-105 font-bold shadow-md"
           >
-            <FiPlus className="mr-2" />
+            <FiPlus className="mr-2 text-lg" />
             Add Property
           </Link>
         )}
 
         {/* Navigation */}
-        <nav className="space-y-1">
+        <nav className="space-y-2">
           {links.map((link) => {
             const active = isActive(link.to)
             return (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`flex items-center justify-between px-4 py-3 rounded-lg transition group ${
+                className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group font-semibold ${
                   active
-                    ? 'bg-primary-50 text-primary-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-gradient-to-r from-primary-100 to-primary-50 text-primary-700 shadow-md border-l-4 border-primary-600'
+                    : 'text-slate-600 hover:bg-gradient-to-r hover:from-slate-50 hover:to-primary-50 hover:text-primary-700'
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <link.icon className={`text-xl ${active ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
-                  <span className="font-medium">{link.label}</span>
+                  <link.icon className={`text-xl transition-all ${active ? 'text-primary-600 scale-110' : 'text-slate-400 group-hover:text-primary-600'}`} />
+                  <span>{link.label}</span>
                 </div>
-                {active && <FiChevronRight className="text-primary-400" />}
+                {active && <FiChevronRight className="text-primary-500 font-bold" />}
               </Link>
             )
           })}
@@ -112,34 +112,34 @@ function Sidebar() {
       </div>
 
       {/* Logout Button */}
-      <div className="p-4 border-t border-gray-100">
+      <div className="p-4 border-t-2 border-slate-200 bg-gradient-to-r from-slate-50 to-primary-50">
         <button
           onClick={handleLogout}
-          className="flex items-center w-full px-4 py-3 text-red-600 rounded-lg hover:bg-red-50 transition"
+          className="flex items-center w-full px-4 py-3 text-accent-600 rounded-xl hover:bg-accent-50 transition-all duration-300 font-bold hover:shadow-md"
         >
           <FiLogOut className="text-xl mr-3" />
-          <span className="font-medium">Logout</span>
+          <span>Logout</span>
         </button>
       </div>
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 animate-fade-in">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Logout</h3>
+            <p className="text-slate-600 mb-6">Are you sure you want to logout?</p>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowLogoutModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium"
+                className="btn-secondary text-sm"
               >
-                No
+                Cancel
               </button>
               <button
                 onClick={confirmLogout}
-                className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition font-medium"
+                className="btn-accent text-sm"
               >
-                Yes
+                Logout
               </button>
             </div>
           </div>

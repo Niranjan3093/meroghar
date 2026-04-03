@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 /* Animations */
 @keyframes fadeIn {
@@ -38,36 +39,77 @@
   }
 }
 
-@keyframes pulse {
+@keyframes bounceSmooth {
   0%, 100% {
-    opacity: 1;
+    transform: translateY(0);
   }
   50% {
-    opacity: 0.5;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(15, 118, 110, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(15, 118, 110, 0.8);
   }
 }
 
 @layer base {
+  * {
+    @apply font-sans;
+  }
+
   body {
-    @apply bg-primary-50 text-primary-900;
+    @apply bg-gradient-to-br from-primary-50 via-white to-primary-100 text-slate-900;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
   }
 }
 
 @layer components {
+  /* Primary Button - Main CTA */
   .btn-primary {
-    @apply bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transform hover:scale-105;
   }
   
+  /* Secondary Button */
   .btn-secondary {
-    @apply bg-primary-100 text-primary-800 px-4 py-2 rounded-lg hover:bg-primary-200 transition-colors;
+    @apply bg-primary-100 text-primary-700 px-6 py-3 rounded-lg hover:bg-primary-200 transition-all duration-300 font-semibold border-2 border-primary-200 hover:border-primary-300;
+  }
+
+  /* Accent Button - For important actions */
+  .btn-accent {
+    @apply bg-gradient-to-r from-accent-500 to-accent-600 text-white px-6 py-3 rounded-lg hover:from-accent-600 hover:to-accent-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-lg hover:shadow-xl transform hover:scale-105;
+  }
+
+  /* Outline Button */
+  .btn-outline {
+    @apply border-2 border-primary-600 text-primary-600 px-6 py-3 rounded-lg hover:bg-primary-50 transition-all duration-300 font-semibold;
   }
   
+  /* Input Field */
   .input-field {
-    @apply w-full px-4 py-2 border border-primary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent;
+    @apply w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300 bg-white text-slate-900 placeholder-slate-400;
+  }
+
+  /* Input Field - Focus glow */
+  .input-field:focus {
+    @apply shadow-lg shadow-primary-200/50;
   }
   
+  /* Card Component */
   .card {
-    @apply bg-white rounded-lg shadow-md p-6;
+    @apply bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-6 border border-slate-100;
+  }
+
+  .card-premium {
+    @apply bg-gradient-to-br from-white to-primary-50 rounded-xl shadow-lg border-2 border-primary-200 p-6 hover:shadow-2xl transition-all duration-300;
   }
 
   /* Animation utilities */
@@ -83,11 +125,61 @@
     animation: slideInDown 0.6s ease-out;
   }
 
-  .animate-pulse-slow {
-    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  .animate-bounce-smooth {
+    animation: bounceSmooth 2s ease-in-out infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
   }
   
+  /* Font family utilities */
   .font-signature {
     font-family: 'Dancing Script', cursive;
+  }
+
+  /* Gradient utilities */
+  .gradient-primary {
+    @apply bg-gradient-to-r from-primary-600 to-primary-700;
+  }
+
+  .gradient-accent {
+    @apply bg-gradient-to-r from-accent-500 to-accent-600;
+  }
+
+  .gradient-mixed {
+    @apply bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500;
+  }
+
+  /* Badge utilities */
+  .badge-primary {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-primary-100 text-primary-700;
+  }
+
+  .badge-accent {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-accent-100 text-accent-700;
+  }
+
+  /* Section styles */
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-slate-900 mb-4;
+  }
+
+  .section-subtitle {
+    @apply text-lg text-slate-600 mb-8;
+  }
+
+  /* Hero section */
+  .hero-overlay {
+    @apply absolute inset-0 bg-gradient-to-r from-primary-900/90 via-primary-800/85 to-accent-900/80;
+  }
+
+  /* Hover effects */
+  .hover-lift {
+    @apply transition-all duration-300 transform hover:-translate-y-2 hover:shadow-xl;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary-400/30;
   }
 }
