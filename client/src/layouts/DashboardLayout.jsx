@@ -1,10 +1,31 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useAuthStore } from '../store/authStore'
 import Sidebar from '../components/dashboard/Sidebar'
 import DashboardNavbar from '../components/dashboard/DashboardNavbar'
 
 function DashboardLayout() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { logout } = useAuthStore()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const isLeaseDetailsPage = /^\/dashboard\/leases\/[^/]+$/.test(location.pathname)
+
+  // Close sidebar when route changes
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [location.pathname])
+
+  const handleLogoutRequest = () => {
+    setShowLogoutModal(true)
+  }
+
+  const confirmLogout = () => {
+    logout()
+    setShowLogoutModal(false)
+    navigate('/')
+  }
 
   if (isLeaseDetailsPage) {
     return (
@@ -20,9 +41,9 @@ function DashboardLayout() {
 
   return (
     <div className="flex h-screen bg-primary-50">
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} onLogoutClick={handleLogoutRequest} />
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <DashboardNavbar />
+        <DashboardNavbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         <main className="flex-1 overflow-y-auto w-full">
           {isFullBleed ? (
             <Outlet />
@@ -33,6 +54,30 @@ function DashboardLayout() {
           )}
         </main>
       </div>
+
+      {/* Logout Confirmation Modal - Rendered at layout level to escape overflow constraints */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 animate-fade-in">
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Logout</h3>
+            <p className="text-slate-600 mb-6">Are you sure you want to logout?</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="btn-secondary text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                className="btn-accent text-sm"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { notificationsAPI } from '../../utils/api'
 import { io } from 'socket.io-client'
 
-function DashboardNavbar() {
+function DashboardNavbar({ onMenuClick }) {
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
@@ -14,6 +14,16 @@ function DashboardNavbar() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [socket, setSocket] = useState(null)
+
+  // Get user initials like Gmail (e.g., "BB" for "Bashu Baidya")
+  const getUserInitials = () => {
+    if (!user?.name) return 'U'
+    const parts = user.name.trim().split(' ')
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+    }
+    return parts[0].charAt(0).toUpperCase()
+  }
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
@@ -202,45 +212,57 @@ function DashboardNavbar() {
   }
 
   return (
-    <nav className="bg-white shadow-sm border-b sticky top-0 z-20">
-      <div className="px-4 md:px-6 py-4 flex justify-between items-center">
+    <nav className="bg-white shadow-md border-b sticky top-0 z-20">
+      <div className="px-4 md:px-6 py-4 md:py-5 flex justify-between items-center">
         {/* Logo & Brand */}
-        <div className="flex items-center space-x-4">
-          <Link to={user?.role === 'admin' ? '/dashboard/admin' : user?.role === 'host' ? '/dashboard/host' : '/dashboard/tenant'} className="flex items-center space-x-2">
-            <FiHome className="text-2xl text-primary-600" />
-            <span className="text-xl font-bold text-gray-800 hidden sm:block">MeroGhar</span>
+        <div className="flex items-center space-x-3 md:space-x-4">
+          {/* Mobile Menu Toggle */}
+          <button
+            onClick={onMenuClick}
+            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
+            title="Toggle menu"
+          >
+            <FiMenu className="text-xl" />
+          </button>
+
+          <Link to={user?.role === 'admin' ? '/dashboard/admin' : user?.role === 'host' ? '/dashboard/host' : '/dashboard/tenant'} className="flex items-center hover:opacity-80 transition-opacity flex-shrink-0">
+            <img 
+              src="/assets/app_logo.png" 
+              alt="MeroGhar Logo" 
+              className="h-14 md:h-16 w-auto object-contain"
+            />
           </Link>
         </div>
 
         {/* Search Bar - Desktop */}
-        <div className="hidden md:flex flex-1 max-w-md mx-8">
+        <div className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-6 lg:mx-8">
           <div className="relative w-full">
             <input
               type="text"
               placeholder="Search properties, tenants, payments..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition"
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition text-sm"
             />
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
         </div>
 
         {/* Right Section */}
-        <div className="flex items-center space-x-2 md:space-x-4">
+        <div className="flex items-center justify-end space-x-1 md:space-x-2 ml-auto">
           {/* Mobile Search Toggle */}
           <button 
             onClick={() => setShowSearch(!showSearch)}
-            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
           >
             <FiSearch className="text-xl" />
           </button>
 
           {/* Help */}
-          <button className="hidden md:flex p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition" title="Help">
+          <button className="hidden md:flex p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition flex-shrink-0" title="Help">
             <FiHelpCircle className="text-xl" />
           </button>
 
           {/* Notifications */}
-          <div className="relative">
+          <div className="relative flex-shrink-0">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
@@ -350,16 +372,24 @@ function DashboardNavbar() {
           {/* User Menu */}
           <Link 
             to="/dashboard/profile"
-            className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg transition"
+            className="flex items-center px-2 py-1.5 hover:bg-primary-50 rounded-lg transition flex-shrink-0"
+            title={user?.name || 'Profile'}
           >
-            <img
-              src={user?.avatar || 'https://via.placeholder.com/40'}
-              alt={user?.name}
-              className="w-9 h-9 rounded-full object-cover border-2 border-gray-100"
-            />
-            <div className="hidden md:block">
-              <p className="text-sm font-medium text-gray-800 leading-tight">{user?.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+            {/* Avatar - Simple Icon */}
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 border-2 border-primary-100 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0 overflow-hidden">
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user?.name || 'User'}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                  }}
+                />
+              ) : null}
+              {!user?.avatar && (
+                <span>{getUserInitials()}</span>
+              )}
             </div>
           </Link>
         </div>

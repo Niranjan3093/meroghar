@@ -8,11 +8,12 @@ function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 mb-8">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <div className="flex items-center space-x-2 mb-4 group hover-glow">
-              <div className="bg-gradient-to-br from-accent-400 to-accent-500 p-2 rounded-lg group-hover:shadow-lg transition-all">
-                <FiHome className="text-xl text-white" />
-              </div>
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-accent-300 to-accent-200 bg-clip-text text-transparent">MeroGhar</h3>
+            <div className="flex items-center space-x-3 mb-4 group hover-glow transition-transform duration-300 hover:scale-105">
+              <img 
+                src="/assets/app_logo.png" 
+                alt="MeroGhar Logo" 
+                className="h-16 w-auto object-contain"
+              />
             </div>
             <p className="text-primary-200 text-sm leading-relaxed">
               Your trusted platform for rental management. Connecting hosts and tenants seamlessly across the nation.

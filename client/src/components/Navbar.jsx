@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { FiHome, FiUser, FiLogOut, FiMenu } from 'react-icons/fi'
+import { FiLogOut, FiMenu } from 'react-icons/fi'
 import { useState } from 'react'
 import UserAvatar from './UserAvatar'
 
@@ -18,15 +18,16 @@ function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-40 bg-white shadow-lg border-b-4 border-gradient-to-r from-primary-600 to-accent-500">
+    <nav className="sticky top-0 z-40 bg-gradient-to-r from-white via-primary-50 to-white shadow-lg border-b border-primary-200">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group hover-glow">
-            <div className="bg-gradient-to-br from-primary-600 to-primary-700 p-2 rounded-lg">
-              <FiHome className="text-2xl text-white" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary-700 to-accent-600 bg-clip-text text-transparent">MeroGhar</span>
+          <Link to="/" className="flex items-center group hover-glow transition-transform duration-300 hover:scale-110">
+            <img 
+              src="/assets/app_logo.png" 
+              alt="MeroGhar Logo" 
+              className="h-20 w-auto object-contain"
+            />
           </Link>
 
           {/* Navigation Links */}

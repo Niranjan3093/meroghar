@@ -45,6 +45,13 @@ function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
+          <div className="mb-6 flex justify-center">
+            <img 
+              src="/assets/app_logo.png" 
+              alt="MeroGhar Logo" 
+              className="h-24 w-auto object-contain"
+            />
+          </div>
           <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
           <p className="text-gray-600 mt-2">Sign in to your MeroGhar account</p>
         </div>

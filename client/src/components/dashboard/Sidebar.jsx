@@ -1,14 +1,11 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { FiHome, FiMessageSquare, FiFileText, FiDollarSign, FiTool, FiUser, FiBarChart2, FiUsers, FiSettings, FiLogOut, FiPlus, FiChevronRight, FiClipboard } from 'react-icons/fi'
-import { useState } from 'react'
 import UserAvatar from '../UserAvatar'
 
-function Sidebar() {
-  const { user, logout } = useAuthStore()
+function Sidebar({ isOpen, onClose, onLogoutClick }) {
+  const { user } = useAuthStore()
   const location = useLocation()
-  const navigate = useNavigate()
-  const [showLogoutModal, setShowLogoutModal] = useState(false)
 
   const hostLinks = [
     { to: '/dashboard/host', icon: FiBarChart2, label: 'Dashboard' },
@@ -45,13 +42,9 @@ function Sidebar() {
   const links = user?.role === 'host' ? hostLinks : user?.role === 'admin' ? adminLinks : tenantLinks
 
   const handleLogout = () => {
-    setShowLogoutModal(true)
-  }
-
-  const confirmLogout = () => {
-    logout()
-    setShowLogoutModal(false)
-    navigate('/')
+    if (onLogoutClick) {
+      onLogoutClick()
+    }
   }
 
   const isActive = (path) => {
@@ -62,15 +55,39 @@ function Sidebar() {
   }
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-white h-screen shadow-lg border-r-4 border-gradient-to-b from-primary-600 to-accent-500 overflow-y-auto flex flex-col">
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 md:hidden backdrop-blur-sm"
+          onClick={onClose}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <aside className={`fixed md:sticky top-0 left-0 w-64 flex-shrink-0 bg-white h-screen shadow-lg border-r-4 border-gradient-to-b from-primary-600 to-accent-500 overflow-y-auto flex flex-col transition-transform duration-300 z-30 md:z-auto ${
+        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      }`}>
       <div className="flex-1 p-4 overflow-y-auto">
+        {/* Close Button on Mobile */}
+        <div className="flex justify-end md:hidden p-4">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
         {/* User Info - Premium Card */}
-        <div className="mb-6 p-5 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-2xl shadow-lg">
-          <div className="flex items-center space-x-4">
-            <UserAvatar name={user?.name} avatar={user?.avatar} size="lg" className="border-4 border-white shadow-lg" />
+        <div className="mb-5 p-4 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800 rounded-xl shadow-lg mx-4">
+          <div className="flex items-center space-x-3">
+            <UserAvatar name={user?.name} avatar={user?.avatar} size="md" className="border-3 border-white shadow-md" />
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-white truncate text-lg">{user?.name || 'User'}</h3>
-              <p className="text-xs text-primary-100 capitalize font-semibold mt-1 bg-primary-500/50 inline-block px-2 py-1 rounded-full">{user?.role} Account</p>
+              <h3 className="font-semibold text-white truncate text-sm">{user?.name || 'User'}</h3>
+              <p className="text-xs text-primary-100 capitalize font-semibold mt-0.5 bg-primary-500/50 inline-block px-2 py-0.5 rounded-full">{user?.role} Account</p>
             </div>
           </div>
         </div>
@@ -79,7 +96,8 @@ function Sidebar() {
         {user?.role === 'host' && (
           <Link
             to="/dashboard/host/properties/add"
-            className="flex items-center justify-center w-full px-4 py-3 mb-6 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-xl hover:shadow-lg transition-all transform hover:scale-105 font-bold shadow-md"
+            onClick={onClose}
+            className="flex items-center justify-center w-full px-4 py-3 mb-6 mx-4 bg-gradient-to-r from-accent-500 to-accent-600 text-white rounded-xl hover:shadow-lg transition-all transform hover:scale-105 font-bold shadow-md"
           >
             <FiPlus className="mr-2 text-lg" />
             Add Property
@@ -87,13 +105,14 @@ function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="space-y-2">
+        <nav className="space-y-2 px-2">
           {links.map((link) => {
             const active = isActive(link.to)
             return (
               <Link
                 key={link.to}
                 to={link.to}
+                onClick={onClose}
                 className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group font-semibold ${
                   active
                     ? 'bg-gradient-to-r from-primary-100 to-primary-50 text-primary-700 shadow-md border-l-4 border-primary-600'
@@ -121,31 +140,8 @@ function Sidebar() {
           <span>Logout</span>
         </button>
       </div>
-
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 animate-fade-in">
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Confirm Logout</h3>
-            <p className="text-slate-600 mb-6">Are you sure you want to logout?</p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="btn-secondary text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmLogout}
-                className="btn-accent text-sm"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </aside>
+    </>
   )
 }
 
