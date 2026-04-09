@@ -435,10 +435,10 @@ function Maintenance() {
                             {(request.estimatedCost || request.actualCost) && (
                               <div className="mt-2 flex gap-4 text-xs text-blue-700">
                                 {request.estimatedCost && (
-                                  <span>Estimated: ${parseFloat(request.estimatedCost).toFixed(2)}</span>
+                                  <span>Estimated: Rs. {parseFloat(request.estimatedCost).toFixed(2)}</span>
                                 )}
                                 {request.actualCost && (
-                                  <span>Actual: ${parseFloat(request.actualCost).toFixed(2)}</span>
+                                  <span>Actual: Rs. {parseFloat(request.actualCost).toFixed(2)}</span>
                                 )}
                               </div>
                             )}
@@ -711,7 +711,7 @@ function Maintenance() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Cost ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Cost (Rs)</label>
                   <input
                     type="number"
                     value={updateData.estimatedCost}
@@ -724,7 +724,7 @@ function Maintenance() {
                 </div>
                 {updateData.status === 'resolved' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Actual Cost ($)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Actual Cost (Rs)</label>
                     <input
                       type="number"
                       value={updateData.actualCost}
@@ -898,7 +898,7 @@ function Maintenance() {
                           <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
                             <p className="text-xs text-blue-600 font-medium mb-1">Estimated Cost</p>
                             <p className="text-2xl font-bold text-blue-900">
-                              ${parseFloat(selectedRequest.estimatedCost).toFixed(2)}
+                              Rs. {parseFloat(selectedRequest.estimatedCost).toFixed(2)}
                             </p>
                           </div>
                         )}
@@ -906,7 +906,7 @@ function Maintenance() {
                           <div className="p-4 bg-green-50 rounded-lg border border-green-100">
                             <p className="text-xs text-green-600 font-medium mb-1">Actual Cost</p>
                             <p className="text-2xl font-bold text-green-900">
-                              ${parseFloat(selectedRequest.actualCost).toFixed(2)}
+                              Rs. {parseFloat(selectedRequest.actualCost).toFixed(2)}
                             </p>
                           </div>
                         )}

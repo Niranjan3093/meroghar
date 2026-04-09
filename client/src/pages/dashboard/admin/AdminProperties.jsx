@@ -252,7 +252,7 @@ function AdminProperties() {
                     </div>
 
                     <div className="flex items-center text-gray-700">
-                      <FiDollarSign className="mr-2 text-gray-400 flex-shrink-0" />
+                      <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded mr-2">Rs</span>
                       <span className="font-semibold">
                         NPR {(property.rent || property.monthlyRent)?.toLocaleString()}/month
                       </span>
@@ -485,12 +485,12 @@ function AdminProperties() {
                       {propertyDetails.property.address?.state && `, ${propertyDetails.property.address.state}`}
                     </div>
                     <div className="flex items-center text-gray-700 font-semibold">
-                      <FiDollarSign className="mr-2 flex-shrink-0" />
+                      <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded mr-2">Rs</span>
                       NPR {(propertyDetails.property.rent || propertyDetails.property.monthlyRent)?.toLocaleString()}/month
                     </div>
                     {propertyDetails.property.securityDeposit && (
                       <div className="flex items-center text-gray-600">
-                        <FiDollarSign className="mr-2 flex-shrink-0" />
+                        <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded mr-2">Rs</span>
                         Security Deposit: NPR {propertyDetails.property.securityDeposit?.toLocaleString()}
                       </div>
                     )}

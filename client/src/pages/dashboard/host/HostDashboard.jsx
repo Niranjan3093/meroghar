@@ -102,7 +102,7 @@ function HostDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-green-100 rounded-lg">
-              <FiDollarSign className="text-2xl text-green-600" />
+              <span className="text-lg font-bold text-green-600">Rs</span>
             </div>
           </div>
           <h3 className="text-sm font-medium text-gray-500 mb-1">Potential Earnings</h3>

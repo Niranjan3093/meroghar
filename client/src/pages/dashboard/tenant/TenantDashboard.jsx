@@ -93,7 +93,7 @@ function TenantDashboard() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition">
           <div className="flex items-center justify-between mb-4">
             <div className="p-3 bg-orange-100 rounded-lg">
-              <FiDollarSign className="text-2xl text-orange-600" />
+              <span className="text-lg font-bold text-orange-600">Rs</span>
             </div>
             {stats.upcomingPayment && (
               <span className="text-xs font-medium text-orange-600 bg-orange-100 px-2 py-1 rounded-full">

@@ -552,7 +552,7 @@ function PaySecurityDeposit() {
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FiDollarSign className="w-8 h-8 text-yellow-600" />
+                <span className="text-2xl font-bold text-yellow-600">Rs</span>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Payment</h3>
               <p className="text-gray-600">

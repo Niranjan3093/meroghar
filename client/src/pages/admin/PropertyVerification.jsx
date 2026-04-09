@@ -167,7 +167,7 @@ function PropertyVerification() {
                   </div>
 
                   <div className="flex items-center text-gray-700">
-                    <FiDollarSign className="mr-2 text-gray-400" />
+                    <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded mr-2">Rs</span>
                     <span className="font-semibold">
                       NPR {property.rent?.toLocaleString()}/month
                     </span>

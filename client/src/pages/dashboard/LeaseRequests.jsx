@@ -6,7 +6,7 @@ import { toast } from 'react-toastify'
 import { 
   FiHome, FiCalendar, FiDollarSign, FiClock, 
   FiCheck, FiX, FiAlertCircle, FiUser, FiMessageSquare,
-  FiFileText, FiChevronRight, FiFilter
+  FiFileText, FiChevronRight, FiFilter, FiDownload, FiCheckCircle
 } from 'react-icons/fi'
 
 function LeaseRequests() {
@@ -197,13 +197,145 @@ function LeaseRequests() {
           )}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {filteredRequests.map((request) => (
             <div 
               key={request._id}
-              className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-md transition"
+              className={`rounded-xl border ${
+                request.status === 'completed' 
+                  ? 'bg-gradient-to-br from-green-50 to-white border-green-200 shadow-lg p-8' 
+                  : 'bg-white border-gray-100 p-6 hover:shadow-md transition'
+              }`}
             >
-              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+              {request.status === 'completed' ? (
+                // Completed Lease - Professional Large Layout
+                <div className="space-y-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <FiCheckCircle className="text-green-600 text-2xl" />
+                        <h3 className="text-2xl font-bold text-gray-900">
+                          {request.property?.title || 'Property'}
+                        </h3>
+                      </div>
+                      <p className="text-lg text-gray-600">Lease Agreement Active</p>
+                    </div>
+                    <div>
+                      {getStatusBadge(request.status)}
+                    </div>
+                  </div>
+
+                  {/* Property Image */}
+                  {request.property?.images?.[0] && (
+                    <div className="overflow-hidden rounded-xl">
+                      <img
+                        src={request.property.images[0].url}
+                        alt={request.property.title}
+                        className="w-full h-48 object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Lease Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                      <p className="text-sm text-gray-500 mb-1">Tenant</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {request.tenant?.name || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                      <p className="text-sm text-gray-500 mb-1">Host</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {request.host?.name || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                      <p className="text-sm text-gray-500 mb-1">Move-in Date</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {new Date(request.proposedMoveIn).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                      <p className="text-sm text-gray-500 mb-1">Lease Duration</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {formatDuration(request.proposedDuration)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Financial Summary */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white rounded-lg p-5 border border-gray-200">
+                      <p className="text-sm text-gray-500 mb-2">Monthly Rent</p>
+                      <p className="text-2xl font-bold text-primary-600">
+                        NPR {request.lease?.monthlyRent?.toLocaleString() || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-5 border border-gray-200">
+                      <p className="text-sm text-gray-500 mb-2">Security Deposit</p>
+                      <p className="text-2xl font-bold text-orange-600">
+                        NPR {request.securityDeposit?.toLocaleString() || 'N/A'}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-5 border border-gray-200">
+                      <p className="text-sm text-gray-500 mb-2">Move-in Cost</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        NPR {((request.lease?.monthlyRent || 0) + (request.securityDeposit || 0)).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Contract Status */}
+                  <div className="bg-white rounded-lg p-5 border border-gray-200">
+                    <p className="text-sm font-semibold text-gray-700 mb-3">Contract Status</p>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${request.lease?.hostSignature?.signed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span className="text-sm text-gray-700">
+                          Host {request.lease?.hostSignature?.signed ? '✓ Signed' : 'Pending'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${request.lease?.tenantSignature?.signed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span className="text-sm text-gray-700">
+                          Tenant {request.lease?.tenantSignature?.signed ? '✓ Signed' : 'Pending'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-2">
+                    {request.lease?.docusign?.status === 'completed' || (request.lease?.hostSignature?.signed && request.lease?.tenantSignature?.signed) ? (
+                      <>
+                        <button
+                          onClick={() => navigate(`/dashboard/leases`)}
+                          className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold flex items-center justify-center"
+                        >
+                          <FiCheckCircle className="mr-2" /> View Lease
+                        </button>
+                        <button
+                          onClick={() => navigate(`/dashboard/leases`)}
+                          className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition flex items-center justify-center"
+                        >
+                          <FiDownload className="mr-2" /> Download
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => navigate(`/dashboard/leases`)}
+                        className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-semibold flex items-center justify-center"
+                      >
+                        <FiFileText className="mr-2" /> Sign Contract Now
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                // Non-Completed Lease - Compact Layout
+                <>
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                 {/* Property Info */}
                 <div className="flex items-start space-x-4 flex-1">
                   {request.property?.images?.[0] && (
@@ -236,7 +368,7 @@ function LeaseRequests() {
                         {formatDuration(request.proposedDuration)}
                       </span>
                       <span className="flex items-center">
-                        <FiDollarSign className="mr-1" />
+                        <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-semibold rounded mr-1">Rs</span>
                         NPR {request.securityDeposit?.toLocaleString()} deposit
                       </span>
                     </div>
@@ -269,7 +401,7 @@ function LeaseRequests() {
                       onClick={() => navigate(`/dashboard/pay-deposit/${request._id}`)}
                       className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition flex items-center"
                     >
-                      <FiDollarSign className="mr-1" /> Pay Deposit
+                      <span className="mr-1">Rs</span> Pay Deposit
                     </button>
                   )}
 
@@ -297,25 +429,28 @@ function LeaseRequests() {
                   {/* View Lease for Completed */}
                   {request.status === 'completed' && request.lease && (
                     <>
-                      <button
-                        onClick={() => navigate(`/dashboard/leases`)}
-                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition flex items-center font-medium"
-                      >
-                        <FiFileText className="mr-1" /> Sign Contract
-                      </button>
-                      <button
-                        onClick={() => navigate(`/dashboard/leases`)}
-                        className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition flex items-center"
-                      >
-                        View Lease <FiChevronRight className="ml-1" />
-                      </button>
+                      {request.lease.docusign?.status === 'completed' || (request.lease.hostSignature?.signed && request.lease.tenantSignature?.signed) ? (
+                        <button
+                          onClick={() => navigate(`/dashboard/leases`)}
+                          className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition flex items-center"
+                        >
+                          <FiCheckCircle className="mr-1" /> View Lease
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => navigate(`/dashboard/leases`)}
+                          className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition flex items-center font-medium"
+                        >
+                          <FiFileText className="mr-1" /> Sign Contract
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
               </div>
 
               {/* Host Response Message */}
-              {request.hostResponse?.message && (
+              {request.hostResponse?.message && request.status !== 'completed' && (
                 <div className={`mt-4 p-3 rounded-lg ${
                   request.status === 'approved' ? 'bg-green-50 border border-green-200' :
                   request.status === 'rejected' ? 'bg-red-50 border border-red-200' :
@@ -329,7 +464,7 @@ function LeaseRequests() {
               )}
 
               {/* Tenant Message */}
-              {request.message && user.role === 'host' && (
+              {request.message && user.role === 'host' && request.status !== 'completed' && (
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm">
                     <span className="font-medium">Tenant Message: </span>
@@ -339,9 +474,11 @@ function LeaseRequests() {
               )}
 
               {/* Timestamp */}
-              <p className="text-xs text-gray-400 mt-4">
+              <p className={`${request.status === 'completed' ? 'text-gray-500 text-sm mt-4' : 'text-xs text-gray-400 mt-4'}`}>
                 Submitted: {new Date(request.createdAt).toLocaleString()}
               </p>
+              </>
+              )}
             </div>
           ))}
         </div>

@@ -46,7 +46,7 @@ const CustomTooltipRevenue = ({ active, payload, label }) => {
   )
 }
 
-const SummaryCard = ({ title, value, subtitle, icon: Icon, color }) => {
+const SummaryCard = ({ title, value, subtitle, icon: Icon, color, isCurrency = false }) => {
   const bg = {
     blue:   'bg-blue-50 text-blue-600',
     green:  'bg-green-50 text-green-600',
@@ -58,7 +58,11 @@ const SummaryCard = ({ title, value, subtitle, icon: Icon, color }) => {
     <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition">
       <div className="flex items-start justify-between mb-3">
         <div className={`p-2.5 rounded-lg ${bg}`}>
-          <Icon className="w-5 h-5" />
+          {isCurrency ? (
+            <span className="text-lg font-bold">Rs</span>
+          ) : (
+            <Icon className="w-5 h-5" />
+          )}
         </div>
       </div>
       <p className="text-2xl font-bold text-gray-900">{value}</p>
@@ -173,6 +177,7 @@ function AdminAnalytics() {
           subtitle={`${analytics?.totalPayments ?? 0} completed payments`}
           icon={FiDollarSign}
           color="orange"
+          isCurrency={true}
         />
       </div>
 
