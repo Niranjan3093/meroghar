@@ -222,7 +222,7 @@ function App() {
         {/* Common Routes */}
         <Route path="messages" element={<Messages />} />
         <Route path="visit-requests" element={
-          <ProtectedRoute allowedRoles={['host']}>
+          <ProtectedRoute allowedRoles={['host', 'tenant']}>
             <VisitRequestsPage />
           </ProtectedRoute>
         } />
