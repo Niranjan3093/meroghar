@@ -17,6 +17,10 @@ function Login() {
   const { register, handleSubmit, watch, formState: { errors } } = useForm()
   const emailValue = watch('email')
   const passwordValue = watch('password')
+  const oauthBaseUrl = (import.meta.env.VITE_SOCKET_URL ||
+    (import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
+      : '')).replace(/\/$/, '')
 
   // Handle OAuth error from redirect
   useEffect(() => {
@@ -159,7 +163,7 @@ function Login() {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <button 
                 type="button"
-                onClick={() => window.location.href = '/api/auth/google'}
+                onClick={() => window.location.href = `${oauthBaseUrl}/api/auth/google`}
                 className="btn-secondary flex items-center justify-center gap-2"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -172,7 +176,7 @@ function Login() {
               </button>
               <button 
                 type="button"
-                onClick={() => window.location.href = '/api/auth/facebook'}
+                onClick={() => window.location.href = `${oauthBaseUrl}/api/auth/facebook`}
                 className="btn-secondary flex items-center justify-center gap-2"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
