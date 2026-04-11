@@ -5,6 +5,7 @@ import { useAuthStore } from '../../store/authStore'
 import { toast } from 'react-toastify'
 import UserAvatar from '../../components/UserAvatar'
 import GoogleMap from '../../components/GoogleMap'
+import BookVisit from '../../components/BookVisit'
 import { 
   FiMapPin, FiHome, FiUser, FiPhone, FiMail, FiCalendar, 
   FiDollarSign, FiStar, FiHeart, FiShare2, FiChevronLeft, 
@@ -392,6 +393,15 @@ function PropertyDetails() {
                   ))}
                 </ul>
               </div>
+            )}
+
+            {/* Book Visit Section */}
+            {user && user._id !== property.host?._id && (
+              <BookVisit 
+                propertyId={property._id} 
+                hostName={property.host?.name}
+                hostId={property.host?._id}
+              />
             )}
           </div>
         </div>

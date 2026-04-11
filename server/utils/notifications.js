@@ -352,3 +352,42 @@ export const notifyLeaseSigned = async (io, { recipientId, signerId, signerName,
     }
   });
 };
+
+// Notify host when tenant requests a visit sitting
+export const notifyHostVisitRequest = async (io, { hostId, tenantName, propertyTitle, visitDate, visitTime, visitSittingId }) => {
+  return createNotification(io, {
+    recipient: hostId,
+    type: 'visit_sitting_request',
+    title: 'New Visit Sitting Request',
+    message: `${tenantName} has requested to visit "${propertyTitle}" on ${new Date(visitDate).toLocaleDateString()} at ${visitTime}`,
+    category: 'visit',
+    priority: 'medium',
+    data: {
+      visitSittingId,
+      propertyTitle,
+      tenantName,
+      visitDate: new Date(visitDate).toLocaleDateString(),
+      visitTime,
+      actionUrl: '/dashboard/visit-requests'
+    }
+  });
+};
+
+// Notify tenant when host approves their visit sitting request
+export const notifyTenantVisitApproval = async (io, { tenantId, hostName, propertyTitle, visitDate, visitTime }) => {
+  return createNotification(io, {
+    recipient: tenantId,
+    type: 'visit_sitting_approved',
+    title: 'Visit Sitting Approved!',
+    message: `${hostName} has approved your visit for "${propertyTitle}" on ${new Date(visitDate).toLocaleDateString()} at ${visitTime}`,
+    category: 'visit',
+    priority: 'high',
+    data: {
+      propertyTitle,
+      hostName,
+      visitDate: new Date(visitDate).toLocaleDateString(),
+      visitTime,
+      actionUrl: '/dashboard/messages'
+    }
+  });
+};

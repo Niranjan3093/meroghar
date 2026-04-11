@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import { FiHome, FiMessageSquare, FiFileText, FiDollarSign, FiTool, FiUser, FiBarChart2, FiUsers, FiSettings, FiLogOut, FiPlus, FiChevronRight, FiClipboard } from 'react-icons/fi'
+import { FiHome, FiMessageSquare, FiFileText, FiDollarSign, FiTool, FiUser, FiBarChart2, FiUsers, FiSettings, FiLogOut, FiPlus, FiChevronRight, FiClipboard, FiCalendar } from 'react-icons/fi'
 import UserAvatar from '../UserAvatar'
 
 function Sidebar({ isOpen, onClose, onLogoutClick }) {
@@ -10,6 +10,7 @@ function Sidebar({ isOpen, onClose, onLogoutClick }) {
   const hostLinks = [
     { to: '/dashboard/host', icon: FiBarChart2, label: 'Dashboard' },
     { to: '/dashboard/host/properties', icon: FiHome, label: 'My Properties' },
+    { to: '/dashboard/visit-requests', icon: FiCalendar, label: 'Visit Requests' },
     { to: '/dashboard/lease-requests', icon: FiClipboard, label: 'Lease Requests' },
     { to: '/dashboard/leases', icon: FiFileText, label: 'Leases' },
     { to: '/dashboard/payments', icon: FiDollarSign, label: 'Payments' },

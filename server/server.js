@@ -26,6 +26,7 @@ import reviewRoutes from './routes/reviewRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import visitSittingRoutes from './routes/visitSittingRoutes.js';
 
 // Load env vars
 dotenv.config();
@@ -80,6 +81,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/visit-sittings', visitSittingRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

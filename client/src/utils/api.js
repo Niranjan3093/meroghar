@@ -187,4 +187,16 @@ export const usersAPI = {
   checkFavorite: (propertyId) => api.get(`/users/favorites/check/${propertyId}`)
 }
 
+// Visit Sitting API
+export const visitSittingAPI = {
+  create: (data) => api.post('/visit-sittings', data),
+  getById: (id) => api.get(`/visit-sittings/${id}`),
+  getAvailableDates: (propertyId, params) => api.get(`/visit-sittings/property/${propertyId}/available-dates`, { params }),
+  getHostRequests: (params) => api.get('/visit-sittings/host/requests/list', { params }),
+  getTenantRequests: (params) => api.get('/visit-sittings/tenant/requests/list', { params }),
+  approve: (id) => api.put(`/visit-sittings/${id}/approve`),
+  reject: (id, data) => api.put(`/visit-sittings/${id}/reject`, data),
+  cancel: (id) => api.put(`/visit-sittings/${id}/cancel`)
+}
+
 export default api

@@ -36,6 +36,7 @@ import Payments from './pages/dashboard/Payments'
 import Maintenance from './pages/dashboard/Maintenance'
 import Profile from './pages/dashboard/Profile'
 import Notifications from './pages/dashboard/Notifications'
+import VisitRequestsPage from './pages/dashboard/VisitRequests'
 
 // Protected Route Component - Redirects to login if not authenticated
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -208,6 +209,11 @@ function App() {
 
         {/* Common Routes */}
         <Route path="messages" element={<Messages />} />
+        <Route path="visit-requests" element={
+          <ProtectedRoute allowedRoles={['host']}>
+            <VisitRequestsPage />
+          </ProtectedRoute>
+        } />
         <Route path="leases" element={<Leases />} />
         <Route path="leases/:id" element={<LeaseDetails />} />
         <Route path="lease-requests" element={<LeaseRequests />} />
