@@ -15,16 +15,25 @@ function OAuthCallback() {
     const userParam = searchParams.get('user')
     const isNewUser = searchParams.get('isNewUser') === 'true'
     const error = searchParams.get('error')
+    const isAdminOAuthMode = searchParams.get('admin') === 'true'
+    const loginFallback = isAdminOAuthMode ? '/login?admin=true' : '/login'
 
     if (error) {
       toast.error(decodeURIComponent(error) || 'Authentication failed. Please try again.')
-      navigate('/login')
+      navigate(loginFallback)
       return
     }
 
     if (token && userParam) {
       try {
         const user = JSON.parse(decodeURIComponent(userParam))
+
+        if (isAdminOAuthMode && user.role !== 'admin') {
+          toast.error('You are not admin')
+          navigate('/login?admin=true')
+          return
+        }
+
         setAuth(user, token)
         
         if (isNewUser) {
@@ -38,10 +47,10 @@ function OAuthCallback() {
         }
       } catch (err) {
         toast.error('Authentication failed. Please try again.')
-        navigate('/login')
+        navigate(loginFallback)
       }
     } else {
-      navigate('/login')
+      navigate(loginFallback)
     }
   }, [searchParams, navigate, setAuth, settings.platformName])
 

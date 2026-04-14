@@ -124,12 +124,14 @@ function App() {
     document.title = settings.platformName || 'MeroGhar'
   }, [settings.platformName])
 
+  const normalizedPath = location.pathname.replace(/\/+$/, '') || '/'
+  const isAdminParam = (searchParams.get('admin') || '').toLowerCase() === 'true'
   const isAdmin = isAuthenticated && user?.role === 'admin'
-  const onMaintenancePage = location.pathname === '/maintenance-mode'
-  const isAdminLoginRoute = location.pathname === '/login' && searchParams.get('admin') === 'true'
-  const isAdminOAuthCallbackRoute = location.pathname === '/oauth-callback' && searchParams.get('admin') === 'true'
+  const onMaintenancePage = normalizedPath === '/maintenance-mode'
+  const isAdminLoginRoute = normalizedPath === '/login' && isAdminParam
+  const isAdminOAuthCallbackRoute = normalizedPath === '/oauth-callback' && isAdminParam
   const isMaintenanceBypassRoute = (
-    location.pathname === '/admin' ||
+    normalizedPath === '/admin' ||
     isAdminLoginRoute ||
     isAdminOAuthCallbackRoute
   )

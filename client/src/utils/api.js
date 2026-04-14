@@ -42,8 +42,16 @@ api.interceptors.response.use(
         return Promise.reject(error)
       }
 
+      const url = new URL(window.location.href)
+      const normalizedPath = url.pathname.replace(/\/+$/, '') || '/'
+      const isAdminContext =
+        normalizedPath === '/admin' ||
+        normalizedPath.startsWith('/dashboard/admin') ||
+        (normalizedPath === '/login' && url.searchParams.get('admin') === 'true') ||
+        (normalizedPath === '/oauth-callback' && url.searchParams.get('admin') === 'true')
+
       useAuthStore.getState().logout()
-      window.location.href = '/login'
+      window.location.href = isAdminContext ? '/login?admin=true' : '/login'
     }
     return Promise.reject(error)
   }
