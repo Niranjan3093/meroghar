@@ -67,9 +67,12 @@ function Sidebar({ isOpen, onClose, onLogoutClick }) {
       )}
       
       {/* Sidebar */}
-      <aside className={`fixed md:sticky top-0 left-0 w-64 flex-shrink-0 bg-white h-screen shadow-lg border-r-4 border-gradient-to-b from-primary-600 to-accent-500 flex flex-col transition-transform duration-300 z-30 md:z-auto ${
+      <aside
+        className={`fixed md:sticky top-0 left-0 w-64 flex-shrink-0 bg-white h-[100dvh] md:h-screen shadow-lg border-r-4 border-gradient-to-b from-primary-600 to-accent-500 flex flex-col transition-transform duration-300 z-30 md:z-auto ${
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      }`}>
+      }`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         {/* Close Button on Mobile */}
         <div className="flex justify-end md:hidden p-4">
@@ -133,7 +136,7 @@ function Sidebar({ isOpen, onClose, onLogoutClick }) {
       </div>
 
       {/* Logout Button */}
-      <div className="p-4 border-t-2 border-slate-200 bg-gradient-to-r from-slate-50 to-primary-50">
+      <div className="p-4 pt-3 border-t-2 border-slate-200 bg-gradient-to-r from-slate-50 to-primary-50">
         <button
           onClick={handleLogout}
           className="flex items-center w-full px-4 py-3 text-accent-600 rounded-xl hover:bg-accent-50 transition-all duration-300 font-bold hover:shadow-md"
