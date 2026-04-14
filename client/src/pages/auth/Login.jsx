@@ -8,7 +8,7 @@ import { useAppSettingsStore } from '../../store/appSettingsStore'
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi'
 import { FaGoogle, FaFacebook } from 'react-icons/fa'
 
-function Login() {
+function Login({ adminOnly = false }) {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [focusedField, setFocusedField] = useState(null)
@@ -23,6 +23,7 @@ function Login() {
     (import.meta.env.VITE_API_URL
       ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
       : '')).replace(/\/$/, '')
+  const adminLoginMode = adminOnly || searchParams.get('admin') === 'true'
 
   // Handle OAuth error from redirect
   useEffect(() => {
@@ -37,9 +38,15 @@ function Login() {
     try {
       const response = await authAPI.login(data)
       const { token, ...user } = response.data.data
+
+      if (adminLoginMode && user.role !== 'admin') {
+        toast.error('You are not admin')
+        return
+      }
+
       setAuth(user, token)
       toast.success('Login successful!')
-      navigate(`/dashboard/${user.role}`)
+      navigate(adminLoginMode ? '/dashboard/admin' : `/dashboard/${user.role}`)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed')
     } finally {
@@ -59,10 +66,18 @@ function Login() {
             />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-          <p className="text-gray-600 mt-2">Sign in to your {settings.platformName} account</p>
+          <p className="text-gray-600 mt-2">
+            {adminLoginMode ? 'Sign in to the admin dashboard' : `Sign in to your ${settings.platformName} account`}
+          </p>
         </div>
 
         <div className="card">
+          {adminLoginMode && settings.maintenanceMode && (
+            <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Maintenance mode is active.
+            </p>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Email */}
             <div>
@@ -189,13 +204,14 @@ function Login() {
             </div>
           </div>
 
-          {/* Sign Up Link */}
-          <p className="mt-6 text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-              Sign up
-            </Link>
-          </p>
+          {!adminLoginMode && (
+            <p className="mt-6 text-center text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-primary-600 hover:text-primary-700 font-medium">
+                Sign up
+              </Link>
+            </p>
+          )}
         </div>
       </div>
     </div>

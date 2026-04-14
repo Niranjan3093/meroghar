@@ -172,6 +172,11 @@ export const login = async (req, res, next) => {
       throw new Error('Invalid credentials');
     }
 
+    if (settings.maintenanceMode && user.role !== 'admin') {
+      res.status(403);
+      throw new Error('Only admin can login during maintenance mode');
+    }
+
     if (settings.requireEmailVerification && !user.isVerified) {
       res.status(401);
       throw new Error('Please verify your account first');
@@ -511,20 +516,30 @@ export const googleAuth = passport.authenticate('google', {
 });
 
 export const googleAuthCallback = (req, res, next) => {
-  passport.authenticate('google', { session: false }, (err, user, info) => {
-    if (err || !user) {
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`);
+  passport.authenticate('google', { session: false }, async (err, user, info) => {
+    try {
+      if (err || !user) {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=auth_failed`);
+      }
+
+      const settings = await getAppSettings();
+      if (settings.maintenanceMode && user.role !== 'admin') {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?admin=true&error=${encodeURIComponent('Only admin can login during maintenance mode')}`);
+      }
+      
+      const token = user.generateToken();
+      const isNewUser = user._isNewOAuthUser === true;
+      const adminQuery = settings.maintenanceMode ? '&admin=true' : '';
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth-callback?token=${token}&isNewUser=${isNewUser}&user=${encodeURIComponent(JSON.stringify({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      }))}${adminQuery}`);
+    } catch (callbackError) {
+      return next(callbackError);
     }
-    
-    const token = user.generateToken();
-    const isNewUser = user._isNewOAuthUser === true;
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth-callback?token=${token}&isNewUser=${isNewUser}&user=${encodeURIComponent(JSON.stringify({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar
-    }))}`);
   })(req, res, next);
 };
 
@@ -566,22 +581,32 @@ export const uploadAvatar = async (req, res, next) => {
 export const facebookAuth = passport.authenticate('facebook');
 
 export const facebookAuthCallback = (req, res, next) => {
-  passport.authenticate('facebook', { session: false }, (err, user, info) => {
-    console.error('Facebook OAuth Error:', err);
-    console.error('Facebook OAuth Info:', info);
-    if (err || !user) {
-      const errorMsg = err?.message || info?.message || 'auth_failed';
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent(errorMsg)}`);
+  passport.authenticate('facebook', { session: false }, async (err, user, info) => {
+    try {
+      console.error('Facebook OAuth Error:', err);
+      console.error('Facebook OAuth Info:', info);
+      if (err || !user) {
+        const errorMsg = err?.message || info?.message || 'auth_failed';
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?error=${encodeURIComponent(errorMsg)}`);
+      }
+
+      const settings = await getAppSettings();
+      if (settings.maintenanceMode && user.role !== 'admin') {
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/login?admin=true&error=${encodeURIComponent('Only admin can login during maintenance mode')}`);
+      }
+      
+      const token = user.generateToken();
+      const isNewUser = user._isNewOAuthUser === true;
+      const adminQuery = settings.maintenanceMode ? '&admin=true' : '';
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth-callback?token=${token}&isNewUser=${isNewUser}&user=${encodeURIComponent(JSON.stringify({
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      }))}${adminQuery}`);
+    } catch (callbackError) {
+      return next(callbackError);
     }
-    
-    const token = user.generateToken();
-    const isNewUser = user._isNewOAuthUser === true;
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:5173'}/oauth-callback?token=${token}&isNewUser=${isNewUser}&user=${encodeURIComponent(JSON.stringify({
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar
-    }))}`);
   })(req, res, next);
 };

@@ -5,6 +5,8 @@ const ALLOWED_PATHS = [
   '/api/health',
   '/api/admin/settings/public',
   '/api/auth/login',
+  '/api/auth/google',
+  '/api/auth/facebook',
   '/api/auth/verify-email',
   '/api/auth/resend-verification'
 ];

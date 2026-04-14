@@ -13,7 +13,6 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
-import AdminAuth from './pages/auth/AdminAuth'
 import VerifyEmail from './pages/auth/VerifyEmail'
 import OAuthCallback from './pages/auth/OAuthCallback'
 import SelectRole from './pages/auth/SelectRole'
@@ -115,6 +114,7 @@ function App() {
   const location = useLocation()
   const { user, isAuthenticated } = useAuthStore()
   const { settings, initialized, fetchSettings } = useAppSettingsStore()
+  const searchParams = new URLSearchParams(location.search)
 
   useEffect(() => {
     fetchSettings()
@@ -126,11 +126,12 @@ function App() {
 
   const isAdmin = isAuthenticated && user?.role === 'admin'
   const onMaintenancePage = location.pathname === '/maintenance-mode'
+  const isAdminLoginRoute = location.pathname === '/login' && searchParams.get('admin') === 'true'
+  const isAdminOAuthCallbackRoute = location.pathname === '/oauth-callback' && searchParams.get('admin') === 'true'
   const isMaintenanceBypassRoute = (
-    location.pathname === '/login' ||
     location.pathname === '/admin' ||
-    location.pathname === '/oauth-callback' ||
-    location.pathname === '/verify-email'
+    isAdminLoginRoute ||
+    isAdminOAuthCallbackRoute
   )
 
   if (!initialized) {
@@ -160,7 +161,7 @@ function App() {
           } />
           <Route path="admin" element={
             <PublicRoute>
-              <AdminAuth />
+              <Navigate to="/login?admin=true" replace />
             </PublicRoute>
           } />
           <Route path="login" element={

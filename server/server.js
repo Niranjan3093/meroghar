@@ -103,26 +103,16 @@ const PORT = process.env.PORT || 5000;
 // Connect to database
 connectDB();
 
-let tryPort = PORT;
-const startServer = () => {
-  httpServer.listen(tryPort, () => {
-    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${tryPort}`);
-  }).on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.error(`Port ${tryPort} is already in use. Trying port ${tryPort + 1}...`);
-      tryPort++;
-      if (tryPort > PORT + 10) {
-        console.error('Could not find an available port after trying 10 ports');
-        process.exit(1);
-      }
-      startServer();
-    } else {
-      throw err;
-    }
-  });
-};
+httpServer.listen(PORT, () => {
+  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Stop the existing process or update PORT in server/.env.`);
+    process.exit(1);
+  }
 
-startServer();
+  throw err;
+});
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
