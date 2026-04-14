@@ -193,3 +193,23 @@
     @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary-400/30;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-slide-in-up,
+  .animate-slide-in-down,
+  .animate-bounce-smooth,
+  .animate-glow,
+  .animate-pulse,
+  .animate-spin {
+    animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
