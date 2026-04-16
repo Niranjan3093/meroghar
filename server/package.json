@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "test:unit": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, NODE_OPTIONS: [process.env.NODE_OPTIONS, '--experimental-vm-modules'].filter(Boolean).join(' ') }; const r = spawnSync(process.execPath, ['./node_modules/jest/bin/jest.js', '--runInBand', '--testPathIgnorePatterns', 'tests/integration'], { stdio: 'inherit', env }); process.exit(r.status ?? 1);\"",
+    "test:integration": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, NODE_ENV: 'test', TEST_MONGODB_URI: process.env.TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/meroghar_integration_test', NODE_OPTIONS: [process.env.NODE_OPTIONS, '--experimental-vm-modules'].filter(Boolean).join(' ') }; const r = spawnSync(process.execPath, ['./node_modules/jest/bin/jest.js', 'tests/integration', '--runInBand'], { stdio: 'inherit', env }); process.exit(r.status ?? 1);\"",
+    "test:all": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, NODE_ENV: 'test', TEST_MONGODB_URI: process.env.TEST_MONGODB_URI || 'mongodb://127.0.0.1:27017/meroghar_integration_test', NODE_OPTIONS: [process.env.NODE_OPTIONS, '--experimental-vm-modules'].filter(Boolean).join(' ') }; const r = spawnSync(process.execPath, ['./node_modules/jest/bin/jest.js', '--runInBand'], { stdio: 'inherit', env }); process.exit(r.status ?? 1);\""
   },
   "keywords": [
     "rental",
@@ -41,7 +44,8 @@
     "socket.io": "^4.6.0"
   },
   "devDependencies": {
+    "jest": "^30.3.0",
     "nodemon": "^3.0.2",
-    "vitest": "^4.1.4"
+    "supertest": "^7.2.2"
   }
 }
