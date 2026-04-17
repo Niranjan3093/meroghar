@@ -9,22 +9,30 @@ let emailAvailable = false;
 
 // Check if email credentials are configured
 if (process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
-  // Use Gmail SMTP in both development and production
+  const smtpPort = Number(process.env.EMAIL_PORT || 587);
+
+  // Use explicit SMTP settings so production can be tuned through environment variables
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: smtpPort,
+    secure: process.env.EMAIL_SECURE
+      ? process.env.EMAIL_SECURE === 'true'
+      : smtpPort === 465,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASSWORD
-    }
+    },
+    connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT || 15000),
+    greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT || 15000),
+    socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT || 20000)
   });
+  emailAvailable = true;
 
-  // Verify transporter configuration
+  // Verify transporter configuration in the background, but do not block sending on a timeout
   transporter.verify((error, success) => {
     if (error) {
       console.error('Email transporter error:', error.message);
-      console.error('Please check your EMAIL_USER and EMAIL_PASSWORD in .env file');
     } else {
-      emailAvailable = true;
       console.log('✓ Email server is ready to send messages');
     }
   });
@@ -53,11 +61,6 @@ export const sendEmail = async (options) => {
 
   if (!transporter) {
     console.error('❌ Email transporter not configured - cannot send email to:', options.to);
-    return false;
-  }
-
-  if (!emailAvailable) {
-    console.warn('⚠ Email transporter not ready yet - please wait a moment and retry');
     return false;
   }
 

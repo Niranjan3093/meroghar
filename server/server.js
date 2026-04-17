@@ -32,6 +32,9 @@ import visitSittingRoutes from './routes/visitSittingRoutes.js';
 // Load env vars
 dotenv.config();
 
+import dns from 'node:dns';
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+
 const app = express();
 app.set('trust proxy', 1);
 const httpServer = createServer(app);
