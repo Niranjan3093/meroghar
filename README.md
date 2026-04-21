@@ -1,328 +1,103 @@
-# MeroGhar – Rental Management System
+# MeroGhar
 
-A complete full-stack rental management platform built with the MERN stack (MongoDB, Express.js, React, Node.js).
+MeroGhar is a full-stack rental management platform for property owners, tenants, and admins. It covers property listings, visit requests, messaging, lease and payment workflows, maintenance tracking, reviews, and dashboard management.
 
+## Live Deployment
 
-##  Quick Start
+- Frontend: Vercel
+- Live site: https://meroghar.vercel.app
+- Backend API: Render
+- API base URL in production: https://meroghar-u6qk.onrender.com
 
-**For a quick 5-minute setup guide, see [QUICKSTART.md](./QUICKSTART.md)**
+The frontend is deployed on Vercel and rewrites `/api/*` requests to the Render backend, so production can keep using the same `/api` paths as local development.
 
-**For detailed documentation, see [SETUP.md](./SETUP.md)**
+## Tech Stack
 
-### Installation Commands
+- Frontend: React, Vite, Tailwind CSS, Zustand, React Router
+- Backend: Node.js, Express, MongoDB, Socket.IO
+- Integrations: Passport, JWT, Cloudinary, Nodemailer, Khalti, eSewa, DocuSign
+
+## Project Structure
+
+```text
+client/   Frontend application
+server/   Backend API and socket server
+```
+
+## Local Setup
+
+### Frontend
 
 ```bash
-# Backend
-cd backend
-npm install
-npm run dev
-
-# Frontend (in new terminal)
-cd frontend
+cd client
 npm install
 npm run dev
 ```
 
-Visit **http://localhost:5173** after setup!
+By default, Vite runs at http://localhost:5173.
 
----
+### Backend
 
-## Overview
-MeroGhar is a full-cycle rental management platform that connects Hosts (property owners), Tenants (rent seekers), and Admins (system overseers). The system manages the complete lifecycle of rental properties: user onboarding, property listing, tenant discovery, communication, lease execution, payments, active rental tracking, renewals, archival, analytics, and AI-driven optimizations.
+```bash
+cd server
+npm install
+npm run dev
+```
 
-This README defines **all functional flows, system behaviors, roles, automations, and data handling rules** required to build the complete software system. It is intended for developers, system architects, and AI code generation tools.
+The backend listens on the port defined by `PORT` or defaults to `5000`.
 
----
+## Environment Variables
 
-## User Roles
+Set the required environment variables in `server/.env` and, if needed for local frontend development, `client/.env`.
 
-### 1. Host
-- Manages property listings
-- Communicates with tenants
-- Approves inquiries
-- Receives rent and deposits
-- Manages maintenance
-- Handles lease renewals
-- Views earnings and analytics
+Common backend variables include:
 
-### 2. Tenant
-- Browses and searches properties
-- Requests viewings or leases
-- Communicates with hosts
-- Signs digital contracts
-- Pays rent and deposits
-- Logs maintenance issues
-- Rates properties and hosts
+- `PORT`
+- `MONGO_URI`
+- `CLIENT_URL`
+- `SESSION_SECRET`
+- `JWT_SECRET`
+- `CLOUDINARY_*`
+- `KHALTI_*`
+- `ESEWA_*`
+- `DOCUSIGN_*`
 
-### 3. Admin
-- Verifies users and properties
-- Monitors platform activity
-- Manages reported or suspicious listings
-- Oversees compliance and audits
-- Accesses analytics and reports
+For local frontend API proxying, you can override the Vite proxy target with `VITE_API_PROXY_TARGET` if the backend is not running on `http://127.0.0.1:5000`.
 
----
+## Available Scripts
 
-## User Registration & Authentication
+### Frontend
 
-1. User selects role: Host, Tenant, or Admin
-2. Signup methods:
-   - Email
-   - Phone
-   - OAuth (Google / Facebook)
-3. Email and phone verification required
-4. Account activated after verification
-5. Role-based dashboard loaded:
-   - Host → Manage Properties
-   - Tenant → Find Rentals
-   - Admin → Monitor & Verify Listings
+From `client/`:
 
----
+- `npm run dev` - Start the Vite dev server
+- `npm run build` - Build the production bundle
+- `npm run preview` - Preview the production build
+- `npm run lint` - Run ESLint
 
-## Property Listing Creation (Host)
+### Backend
 
-1. Host selects **Add Property**
-2. Property form fields:
-   - Property type (apartment, room, office, etc.)
-   - Location
-   - Rent amount
-   - Security deposit
-   - Lease duration
-   - Available date
-   - Photos
-   - Verification documents
-3. System checks:
-   - Required field validation
-   - Image validation
-   - Optional AI photo analysis (blurry/inappropriate detection)
-4. Admin verification workflow
-5. Upon approval:
-   - Listing status → Active
-   - Property visible on public feed and map
+From `server/`:
 
----
+- `npm start` - Start the production server
+- `npm run dev` - Start the server with Nodemon
+- `npm run test:unit` - Run unit tests
+- `npm run test:integration` - Run integration tests
+- `npm run test:all` - Run the full test suite
 
-## Tenant Browsing & Search
+## Features
 
-1. Search capabilities:
-   - Price range
-   - Amenities
-   - Location
-   - Lease duration
-2. Map view:
-   - Property markers
-   - Heatmaps of availability
-3. Property detail view includes:
-   - Images
-   - Rent details
-   - Availability calendar
-   - Host ratings and reviews
-   - Request Lease / Book Viewing options
-4. Tenant interest logged for analytics and recommendations
-5. Future trust features:
-   - Tenant income verification
-   - Criminal record verification (planned)
+- Role-based authentication for hosts, tenants, and admins
+- Property listing management and search
+- Visit booking and visit request approval flow
+- Real-time messaging and notifications
+- Lease and payment handling
+- Maintenance request tracking
+- Reviews, analytics, and admin oversight
 
----
+## Production Notes
 
-## Inquiry & Communication
-
-1. Tenant sends inquiry
-2. Host receives notification
-3. Real-time chat enabled (Socket.io)
-4. Host actions:
-   - Schedule viewing
-   - Send rental offer
-   - Confirm tenant request
-
----
-
-## Lease Contract & Payment
-
-1. Upon agreement:
-   - System generates digital lease (PDF)
-2. Lease includes:
-   - Host and tenant details
-   - Start and end dates
-   - Monthly rent
-   - Security deposit
-   - Rules and renewal conditions
-3. Tenant digitally signs:
-   - DocuSign or in-app signature
-4. Payments:
-   - First month rent + deposit
-   - Payment gateways: Khalti / eSewa
-5. Payment verification:
-   - Stored in transaction history
-6. Status updates:
-   - Lease → Active
-   - Property → Rented (Unavailable)
-
----
-
-## Active Rental Period
-
-1. Rental timer starts based on lease duration
-2. Monthly automation:
-   - Rent reminders
-   - Digital rent receipts
-   - Payment ledger updates
-3. Host capabilities:
-   - Add maintenance costs
-   - Add utilities and expenses
-4. Tenant capabilities:
-   - Log maintenance issues
-   - Upload photos
-   - Rate maintenance response
-
----
-
-## Maintenance & Issue Lifecycle
-
-1. Tenant submits issue:
-   - Description
-   - Photos
-2. Notifications sent to host/maintenance staff
-3. Issue states:
-   - Pending
-   - In Progress
-   - Resolved
-4. Tenant confirms resolution
-5. Records stored in Property Maintenance History
-
----
-
-## Lease Expiry & Renewal
-
-1. 14 days before lease end:
-   - Renewal reminder sent to host and tenant
-2. Host options:
-   - Renew lease
-   - End lease
-3. If renewed:
-   - New contract auto-generated
-   - Lease status → Renewed
-   - Property remains rented
-4. If ended:
-   - Lease status → Expired
-   - Property → Inactive
-
----
-
-## Post-Expiry Automation
-
-1. 7 days after expiry:
-   - Reactivation reminder sent to host
-2. 30 days after expiry:
-   - Listing auto-archived
-   - Data retained (not deleted)
-3. Admin access:
-   - Archived records for audit and disputes
-
----
-
-## Review & Rating System
-
-1. After lease completion:
-   - Tenant rates:
-     - Property
-     - Host
-   - Host rates tenant behavior
-2. Ratings affect:
-   - User profiles
-   - Search ranking
-   - AI recommendations
-
----
-
-## Data Retention & Analytics
-
-1. Archived data used for analytics:
-   - Average rental duration
-   - Lease renewal rate
-   - Monthly revenue per host
-   - Property occupancy rate
-2. Predictive analytics (monthly):
-   - Rent price suggestions
-   - Optimal lease duration
-   - Tenant retention likelihood
-
----
-
-## AI & Smart Features
-
-1. Recommendation Engine:
-   - Personalized property suggestions
-2. Dynamic Pricing:
-   - Rent suggestions based on market, season, location
-3. Review Analyzer:
-   - Extracts common complaint themes
-4. Fraud Detection:
-   - Duplicate listings
-   - Fake accounts
-   - Unrealistic pricing
-
----
-
-## Admin Dashboard & Controls
-
-1. Admin dashboard shows:
-   - Active vs expired leases
-   - Average rent by city
-   - Most active landlords
-   - Flagged listings
-2. Admin actions:
-   - Deactivate listings
-   - Ban users
-   - Approve high-value properties
-   - Export reports (CSV/PDF)
-
----
-
-## Audit Trail & Compliance
-
-1. All actions logged:
-   - Leases
-   - Payments
-   - Messages
-2. Data retained for 2–3 years
-3. Admin-only audit access
-4. Historical exports supported
-
----
-
-## System Timeline Automation
-
-| Event | Action | Notification | Status |
-|-----|------|------------|-------|
-| Lease Start | Contract activated | Host & Tenant | Active |
-| T - 14 days | Renewal reminder | Host & Tenant | Pending Renewal |
-| Lease End | Lease expired | Host & Tenant | Expired |
-| +7 days | Reactivation reminder | Host | Expired |
-| +30 days | Auto archive | System | Archived |
-
----
-
-## Example User Journeys
-
-### Tenant
-Register → Browse → Inquiry → Contract → Pay → Move in → Pay rent → Renew/Exit → Review → Archive
-
-### Host
-Register → List property → Approve tenant → Contract → Receive rent → Maintenance → Renewal → Archive → Analytics
-
----
-
-## Future Enhancements (Planned)
-
-- Blockchain-based contract ledger
-- IoT smart lock integration
-- AI voice assistant chatbot
-- Automated market rent alerts
-
----
-
-## Notes
-- All archived data is preserved, not deleted
-- System is modular and supports AI-first extensibility
-- Designed for scalability, compliance, and auditability
+- The frontend is hosted on Vercel.
+- The backend API is hosted on Render.
+- Production API requests should continue using `/api/*` paths.
+- The backend health endpoint is available at `/api/health`.
